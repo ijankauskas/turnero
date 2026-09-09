@@ -80,6 +80,7 @@ export function AppShell({ children }: { children: ReactNode }) {
         <nav style={{ display: 'flex', gap: 16, fontSize: 14 }}>
           <a href="/agenda">Agenda</a>
           {!isProfessional ? <a href="/clientes">Clientes</a> : null}
+          {!isProfessional ? <a href="/prestaciones">Prestaciones</a> : null}
           {canSeeReports ? <a href="/reportes">Reportes</a> : null}
           {canSeeConfig ? <a href="/config">Configuración</a> : null}
         </nav>

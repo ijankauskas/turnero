@@ -31,6 +31,7 @@ export class HttpErrorFilter implements ExceptionFilter {
         message: body.message ?? exception.message,
         details: body.details,
         companies: body.companies,
+        matches: body.matches,
       });
       return;
     }

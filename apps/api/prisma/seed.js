@@ -113,6 +113,117 @@ async function upsertProfessional({ companyId, user, displayName, color, branchI
   return professional;
 }
 
+async function upsertService(companyId, name, durationMinutes, basePrice) {
+  const existing = await prisma.service.findFirst({
+    where: { companyId, name, deletedAt: null },
+  });
+  if (existing) {
+    return existing;
+  }
+  return prisma.service.create({
+    data: { companyId, name, durationMinutes, basePrice },
+  });
+}
+
+async function upsertOffer(companyId, professionalId, service, price, type, value) {
+  const existing = await prisma.professionalService.findFirst({
+    where: { professionalId, serviceId: service.id },
+  });
+  if (existing) {
+    return existing;
+  }
+  return prisma.professionalService.create({
+    data: {
+      companyId,
+      professionalId,
+      serviceId: service.id,
+      price,
+      remunerationType: type,
+      remunerationValue: value,
+    },
+  });
+}
+
+async function upsertWeekSchedule(companyId, professionalId, branchId) {
+  const count = await prisma.workSchedule.count({
+    where: { professionalId },
+  });
+  if (count > 0) {
+    return;
+  }
+  const startTime = new Date(Date.UTC(1970, 0, 1, 9, 0, 0));
+  const endTime = new Date(Date.UTC(1970, 0, 1, 18, 0, 0));
+  for (const weekday of [0, 1, 2, 3, 4, 5]) {
+    await prisma.workSchedule.create({
+      data: {
+        companyId,
+        professionalId,
+        branchId,
+        weekday,
+        startTime,
+        endTime,
+        isOff: false,
+      },
+    });
+  }
+}
+
+async function upsertClient(companyId, firstName, lastName, phone, email) {
+  const existing = await prisma.client.findFirst({
+    where: { companyId, phone, deletedAt: null },
+  });
+  if (existing) {
+    return existing;
+  }
+  return prisma.client.create({
+    data: { companyId, firstName, lastName, phone, email },
+  });
+}
+
+function todayInAR() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Argentina/Buenos_Aires',
+  }).format(new Date());
+}
+
+async function upsertAppointment({
+  companyId,
+  branchId,
+  professionalId,
+  clientId,
+  service,
+  offer,
+  createdByUserId,
+  hour,
+}) {
+  const startAt = new Date(`${todayInAR()}T${hour}:00-03:00`);
+  const endAt = new Date(startAt.getTime() + service.durationMinutes * 60_000);
+  const existing = await prisma.appointment.findFirst({
+    where: { professionalId, startAt },
+  });
+  if (existing) {
+    return existing;
+  }
+  return prisma.appointment.create({
+    data: {
+      companyId,
+      branchId,
+      professionalId,
+      clientId,
+      serviceId: service.id,
+      startAt,
+      endAt,
+      durationMinutes: service.durationMinutes,
+      price: offer.price,
+      serviceNameSnapshot: service.name,
+      remunerationTypeSnapshot: offer.remunerationType,
+      remunerationValueSnapshot: offer.remunerationValue,
+      status: 'CONFIRMADO',
+      createdByUserId,
+    },
+  });
+}
+
 async function main() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
 
@@ -213,12 +324,116 @@ async function main() {
     role: 'PROFESIONAL',
     passwordHash,
   });
-  await upsertProfessional({
+  const noeliaPro = await upsertProfessional({
     companyId: studio.company.id,
     user: noelia,
     displayName: 'Noelia',
     color: '#E8A0BF',
     branchId: studio.branch.id,
+  });
+
+  const corte = await upsertService(studio.company.id, 'Corte', 45, 12000);
+  const color = await upsertService(studio.company.id, 'Color', 90, 25000);
+  const unas = await upsertService(studio.company.id, 'Uñas', 30, 10000);
+  const pestanas = await upsertService(studio.company.id, 'Pestañas', 30, 10000);
+  const combo = await upsertService(
+    studio.company.id,
+    'Uñas + Pestañas',
+    45,
+    15000,
+  );
+
+  const juanPro = await prisma.professional.findUnique({
+    where: { userId: juan.id },
+  });
+  await upsertWeekSchedule(
+    studio.company.id,
+    juanPro.id,
+    studio.branch.id,
+  );
+  await upsertWeekSchedule(
+    studio.company.id,
+    noeliaPro.id,
+    studio.branch.id,
+  );
+
+  const juanCorte = await upsertOffer(
+    studio.company.id,
+    juanPro.id,
+    corte,
+    12000,
+    'PERCENT',
+    40,
+  );
+  await upsertOffer(
+    studio.company.id,
+    juanPro.id,
+    unas,
+    10000,
+    'PERCENT',
+    40,
+  );
+  const noeliaColor = await upsertOffer(
+    studio.company.id,
+    noeliaPro.id,
+    color,
+    25000,
+    'PERCENT',
+    40,
+  );
+  await upsertOffer(
+    studio.company.id,
+    noeliaPro.id,
+    pestanas,
+    10000,
+    'FIXED',
+    8000,
+  );
+  await upsertOffer(
+    studio.company.id,
+    noeliaPro.id,
+    combo,
+    20000,
+    'PERCENT',
+    40,
+  );
+
+  const clientAna = await upsertClient(
+    studio.company.id,
+    'Ana',
+    'Pérez',
+    '1155550001',
+    'ana.perez@example.com',
+  );
+  const clientLuis = await upsertClient(
+    studio.company.id,
+    'Luis',
+    'Gómez',
+    '1155550002',
+    null,
+  );
+  const adminStudio = await prisma.user.findFirst({
+    where: { companyId: studio.company.id, email: 'admin@turnero.test' },
+  });
+  await upsertAppointment({
+    companyId: studio.company.id,
+    branchId: studio.branch.id,
+    professionalId: juanPro.id,
+    clientId: clientAna.id,
+    service: corte,
+    offer: juanCorte,
+    createdByUserId: adminStudio.id,
+    hour: '10:00',
+  });
+  await upsertAppointment({
+    companyId: studio.company.id,
+    branchId: studio.branch.id,
+    professionalId: noeliaPro.id,
+    clientId: clientLuis.id,
+    service: color,
+    offer: noeliaColor,
+    createdByUserId: adminStudio.id,
+    hour: '11:00',
   });
 }
 

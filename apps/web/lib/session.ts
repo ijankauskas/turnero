@@ -40,3 +40,25 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
   }
   return fetch(`${apiBase}${path}`, { ...init, headers });
 }
+
+export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await apiFetch(path, init);
+  const body = (await response.json()) as T & {
+    message?: string | string[];
+    error?: string;
+    matches?: unknown;
+  };
+  if (!response.ok) {
+    const message = Array.isArray(body.message)
+      ? body.message[0]
+      : body.message;
+    const error = new Error(message || 'Error de API') as Error & {
+      status: number;
+      body: unknown;
+    };
+    error.status = response.status;
+    error.body = body;
+    throw error;
+  }
+  return body;
+}
