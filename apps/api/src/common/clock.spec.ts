@@ -1,4 +1,11 @@
-import { zonedLocalToUtc, weekdayIsoInZone, intervalsOverlap } from './clock';
+import {
+  zonedLocalToUtc,
+  weekdayIsoInZone,
+  intervalsOverlap,
+  startOfIsoWeek,
+  monthStart,
+  nextMonthStart,
+} from './clock';
 import { assertScheduleNoCrossBranchOverlap } from './schedule-rules';
 
 describe('clock', () => {
@@ -15,6 +22,12 @@ describe('clock', () => {
   it('detects overlapping intervals', () => {
     expect(intervalsOverlap(9 * 60, 12 * 60, 11 * 60, 13 * 60)).toBe(true);
     expect(intervalsOverlap(9 * 60, 12 * 60, 12 * 60, 14 * 60)).toBe(false);
+  });
+
+  it('resolves ISO week and month bounds from a civil date', () => {
+    expect(startOfIsoWeek('2026-09-09')).toBe('2026-09-07');
+    expect(monthStart('2026-09-09')).toBe('2026-09-01');
+    expect(nextMonthStart('2026-09-09')).toBe('2026-10-01');
   });
 });
 

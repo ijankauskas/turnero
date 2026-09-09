@@ -14,6 +14,8 @@ export class HealthController {
       return {
         status: 'ok',
         db: 'up',
+        mailer: process.env.SMTP_HOST ? 'smtp' : 'json',
+        queue: 'postgres',
         timestamp: new Date().toISOString(),
       };
     } catch {

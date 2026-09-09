@@ -493,6 +493,8 @@ function serializeAppointment(row: {
   paid: boolean;
   observations: string | null;
   internalNotes: string | null;
+  cancelledAt: Date | null;
+  cancelReason: string | null;
   client: {
     id: string;
     firstName: string;
@@ -518,6 +520,8 @@ function serializeAppointment(row: {
     paid: row.paid,
     observations: row.observations,
     internalNotes: row.internalNotes,
+    cancelledAt: row.cancelledAt?.toISOString() ?? null,
+    cancelReason: row.cancelReason,
     client: row.client,
     professional: row.professional,
     branch: row.branch,

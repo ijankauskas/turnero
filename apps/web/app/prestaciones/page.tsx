@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
 import { apiJson } from '../../lib/session';
+import type { MeResponse } from '../../lib/types';
 
 type Service = {
   id: string;
@@ -18,8 +19,11 @@ export default function PrestacionesPage() {
   const [durationMinutes, setDurationMinutes] = useState(30);
   const [basePrice, setBasePrice] = useState(10000);
   const [error, setError] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
 
   async function load() {
+    const me = await apiJson<MeResponse>('/auth/me');
+    setIsAdmin(me.user.role === 'ADMINISTRADOR');
     setRows(await apiJson<Service[]>('/services'));
   }
 
@@ -54,25 +58,27 @@ export default function PrestacionesPage() {
             </li>
           ))}
         </ul>
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 320 }}>
-          <input
-            placeholder="Nombre"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            required
-          />
-          <input
-            type="number"
-            value={durationMinutes}
-            onChange={(e) => setDurationMinutes(Number(e.target.value))}
-          />
-          <input
-            type="number"
-            value={basePrice}
-            onChange={(e) => setBasePrice(Number(e.target.value))}
-          />
-          <button type="submit">Agregar (Admin)</button>
-        </form>
+        {isAdmin ? (
+          <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 320 }}>
+            <input
+              placeholder="Nombre"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+            />
+            <input
+              type="number"
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            />
+            <input
+              type="number"
+              value={basePrice}
+              onChange={(e) => setBasePrice(Number(e.target.value))}
+            />
+            <button type="submit">Agregar</button>
+          </form>
+        ) : null}
       </section>
     </AppShell>
   );

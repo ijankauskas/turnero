@@ -81,6 +81,31 @@ export function addDays(isoDate: string, days: number): string {
   return utc.toISOString().slice(0, 10);
 }
 
+/** Lunes de la semana ISO de una fecha civil `YYYY-MM-DD`. */
+export function startOfIsoWeek(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-').map(Number);
+  const utc = new Date(Date.UTC(year, month - 1, day));
+  const weekday = (utc.getUTCDay() + 6) % 7;
+  return addDays(isoDate, -weekday);
+}
+
+export function monthStart(isoDate: string): string {
+  const [year, month] = isoDate.split('-').map(Number);
+  return `${year}-${String(month).padStart(2, '0')}-01`;
+}
+
+export function nextMonthStart(isoDate: string): string {
+  const [year, month] = isoDate.split('-').map(Number);
+  if (month === 12) {
+    return `${year + 1}-01-01`;
+  }
+  return `${year}-${String(month + 1).padStart(2, '0')}-01`;
+}
+
+export function parseDateOnly(isoDate: string): Date {
+  return new Date(`${isoDate}T00:00:00.000Z`);
+}
+
 export function zonedLocalToUtc(
   isoDate: string,
   hhmm: string,

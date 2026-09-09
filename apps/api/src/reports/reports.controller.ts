@@ -28,4 +28,14 @@ export class ReportsController {
   ) {
     return this.reports.daily(user, { date, branchId });
   }
+
+  @Get('live')
+  @Roles('ADMINISTRADOR', 'ENCARGADO', 'RECEPCION')
+  live(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('date') date: string,
+    @Query('branchId') branchId?: string,
+  ) {
+    return this.reports.live(user, { date, branchId });
+  }
 }

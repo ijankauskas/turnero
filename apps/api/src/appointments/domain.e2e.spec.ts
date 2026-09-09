@@ -6,6 +6,7 @@ import request from 'supertest';
 import { AppModule } from '../app.module';
 import { HttpErrorFilter } from '../common/http-error.filter';
 import { zonedLocalToUtc } from '../common/clock';
+import { NotificationsProcessor } from '../notifications/notifications.processor';
 
 const prisma = new PrismaClient();
 const PASSWORD = 'Turnero123!';
@@ -257,6 +258,7 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
 
   afterAll(async () => {
     await prisma.notificationJob.deleteMany({ where: { companyId } });
+    await prisma.dailyNote.deleteMany({ where: { companyId } });
     await prisma.appointment.deleteMany({ where: { companyId } });
     await prisma.professionalService.deleteMany({ where: { companyId } });
     await prisma.workSchedule.deleteMany({ where: { companyId } });
@@ -368,6 +370,26 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       });
     expect(forbiddenWrite.status).toBe(403);
 
+    const daily = await request(app.getHttpServer())
+      .get(`/api/v1/reports/daily?date=2026-09-09&branchId=${centroId}`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(daily.status).toBe(200);
+    expect(daily.body.count).toBe(1);
+    expect(daily.body.scheduledMinutes).toBe(540);
+    expect(daily.body.occupancyPercent).toBe(8.3);
+
+    const juanDaily = await request(app.getHttpServer())
+      .get('/api/v1/reports/daily?date=2026-09-09')
+      .set('Authorization', `Bearer ${juanToken}`);
+    expect(juanDaily.status).toBe(403);
+
+    await app.get(NotificationsProcessor).processPending();
+    const jobs = await prisma.notificationJob.findMany({
+      where: { appointmentId: created.body.id },
+    });
+    expect(jobs.length).toBeGreaterThan(0);
+    expect(jobs.every((job) => job.status === 'SENT')).toBe(true);
+
     const cancelled = await request(app.getHttpServer())
       .post(`/api/v1/appointments/${created.body.id}/cancel`)
       .set('Authorization', `Bearer ${adminToken}`)
@@ -383,5 +405,44 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       .get(`/api/v1/appointments/${created.body.id}/whatsapp-link`)
       .set('Authorization', `Bearer ${adminToken}`);
     expect(wa.body.url).toContain('wa.me/1155559999');
+  });
+
+  it('upserts daily notes scoped by branch (NOTE-001)', async () => {
+    const put = await request(app.getHttpServer())
+      .put('/api/v1/notes')
+      .set('Authorization', `Bearer ${noraToken}`)
+      .send({
+        date: '2026-09-09',
+        branchId: centroId,
+        body: 'Caja chica incompleta',
+      });
+    expect(put.status).toBe(200);
+    expect(put.body.body).toBe('Caja chica incompleta');
+
+    const other = await request(app.getHttpServer())
+      .put('/api/v1/notes')
+      .set('Authorization', `Bearer ${noraToken}`)
+      .send({
+        date: '2026-09-09',
+        branchId: norteId,
+        body: 'no',
+      });
+    expect(other.status).toBe(403);
+
+    const read = await request(app.getHttpServer())
+      .get(`/api/v1/notes?date=2026-09-09&branchId=${centroId}`)
+      .set('Authorization', `Bearer ${luciaToken}`);
+    expect(read.status).toBe(200);
+    expect(read.body.body).toBe('Caja chica incompleta');
+
+    const pro = await request(app.getHttpServer())
+      .put('/api/v1/notes')
+      .set('Authorization', `Bearer ${juanToken}`)
+      .send({
+        date: '2026-09-09',
+        branchId: centroId,
+        body: 'no',
+      });
+    expect(pro.status).toBe(403);
   });
 });
