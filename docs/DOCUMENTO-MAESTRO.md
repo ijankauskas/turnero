@@ -972,7 +972,7 @@ Orden de construcción (no se salta a la agenda sin tenant + auth):
 
 ## 15. Tarjetas de Trello
 
-Tablero dedicado **Turnero — Agenda SaaS** en el workspace SIEMPRE (no mezclar con marketplace ni tickets de otro producto).
+Tablero dedicado **[Turnero — Agenda SaaS](https://trello.com/b/QdSMqCWX/turnero-agenda-saas)** en el workspace SIEMPRE (no mezclar con marketplace ni tickets de otro producto). Índice con URLs de cada tarjeta: [TRELLO.md](TRELLO.md).
 
 Listas:
 
