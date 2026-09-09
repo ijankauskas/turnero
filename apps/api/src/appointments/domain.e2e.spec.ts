@@ -1,10 +1,10 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../app.module';
-import { HttpErrorFilter } from '../common/http-error.filter';
+import { configureApp } from '../configure-app';
 import { zonedLocalToUtc } from '../common/clock';
 import { NotificationsProcessor } from '../notifications/notifications.processor';
 
@@ -65,15 +65,7 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       imports: [AppModule],
     }).compile();
     app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-    app.useGlobalFilters(new HttpErrorFilter());
+    configureApp(app);
     await app.init();
 
     adminToken = await login(adminEmail);
@@ -608,5 +600,88 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
     expect((row.payload as { retries?: number }).retries).toBeGreaterThanOrEqual(
       3,
     );
+  });
+
+  it('lets Juan see only his clients and their history (CLI-004)', async () => {
+    const exclusive = await request(app.getHttpServer())
+      .post('/api/v1/clients')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        firstName: 'Solo',
+        lastName: 'Noelia',
+        phone: `1188${suffix.slice(-6)}`,
+      });
+    expect(exclusive.status).toBe(201);
+    const booked = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: norteId,
+        professionalId: noeliaProId,
+        clientId: exclusive.body.id,
+        serviceId: corteId,
+        startAt: zonedLocalToUtc(
+          '2026-09-09',
+          '17:00',
+          'America/Argentina/Buenos_Aires',
+        ).toISOString(),
+      });
+    expect(booked.status).toBe(201);
+
+    const listed = await request(app.getHttpServer())
+      .get('/api/v1/clients')
+      .set('Authorization', `Bearer ${juanToken}`);
+    expect(listed.status).toBe(200);
+    expect(
+      listed.body.every((row: { id: string }) => row.id !== exclusive.body.id),
+    ).toBe(true);
+
+    const stolen = await request(app.getHttpServer())
+      .get(`/api/v1/clients/${exclusive.body.id}`)
+      .set('Authorization', `Bearer ${juanToken}`);
+    expect(stolen.status).toBe(404);
+
+    const ficha = await request(app.getHttpServer())
+      .get(`/api/v1/clients/${clientId}`)
+      .set('Authorization', `Bearer ${juanToken}`);
+    expect(ficha.status).toBe(200);
+    expect(
+      ficha.body.appointments.every(
+        (row: { professionalId: string }) => row.professionalId === juanProId,
+      ),
+    ).toBe(true);
+  });
+
+  it('deactivates a professional without deleting past appointments (USR-004)', async () => {
+    const off = await request(app.getHttpServer())
+      .post(`/api/v1/professionals/${noeliaProId}/deactivate`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(off.status).toBe(201);
+    expect(off.body.active).toBe(false);
+
+    const blocked = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: norteId,
+        professionalId: noeliaProId,
+        clientId,
+        serviceId: corteId,
+        startAt: zonedLocalToUtc(
+          '2026-09-09',
+          '18:00',
+          'America/Argentina/Buenos_Aires',
+        ).toISOString(),
+      });
+    expect(blocked.status).toBe(404);
+
+    const history = await request(app.getHttpServer())
+      .get('/api/v1/appointments?date=2026-09-09')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(
+      history.body.some(
+        (row: { professionalId: string }) => row.professionalId === noeliaProId,
+      ),
+    ).toBe(true);
   });
 });

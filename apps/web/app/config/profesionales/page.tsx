@@ -9,6 +9,7 @@ type Professional = {
   displayName: string;
   color: string;
   title: string | null;
+  active?: boolean;
   branches: Array<{ id: string; name: string }>;
 };
 type Block = {
@@ -182,6 +183,7 @@ export default function ConfigProfesionalesPage() {
             <li key={row.id}>
               <button type="button" onClick={() => void openFicha(row.id)}>
                 {row.displayName}
+                {row.active === false ? ' (inactivo)' : ''}
               </button>{' '}
               · {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
             </li>
@@ -392,6 +394,30 @@ export default function ConfigProfesionalesPage() {
               <button type="submit" disabled={saving}>
                 Guardar ficha
               </button>
+              {current.active !== false ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    void apiJson(`/professionals/${current.id}/deactivate`, {
+                      method: 'POST',
+                    })
+                      .then(() =>
+                        setRows((rows) =>
+                          rows.map((row) =>
+                            row.id === current.id
+                              ? { ...row, active: false }
+                              : row,
+                          ),
+                        ),
+                      )
+                      .catch((err: Error) => setError(err.message))
+                  }
+                >
+                  Desactivar
+                </button>
+              ) : (
+                <span>Inactivo: no entra en el alta de turnos.</span>
+              )}
             </div>
           </form>
         ) : null}

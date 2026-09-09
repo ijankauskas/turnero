@@ -98,4 +98,10 @@ export class ProfessionalsController {
   ) {
     return this.professionals.update(user, id, dto);
   }
+
+  @Post(':id/deactivate')
+  @Roles('ADMINISTRADOR')
+  deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.professionals.update(user, id, { active: false });
+  }
 }

@@ -14,6 +14,7 @@ type Detail = {
   phone: string;
   email: string | null;
   notes: string | null;
+  active?: boolean;
   appointments: Array<{
     id: string;
     startAt: string;
@@ -104,6 +105,26 @@ export default function ClienteFichaPage() {
                 </label>
                 <button type="submit">Guardar ficha</button>
                 {saved ? <p>Guardado.</p> : null}
+                {row.active !== false ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      void apiJson(`/clients/${params.id}/deactivate`, {
+                        method: 'POST',
+                      })
+                        .then(() =>
+                          setRow((current) =>
+                            current ? { ...current, active: false } : current,
+                          ),
+                        )
+                        .catch((err: Error) => setError(err.message))
+                    }
+                  >
+                    Desactivar cliente
+                  </button>
+                ) : (
+                  <p>Cliente inactivo: no aparece en el alta de turnos.</p>
+                )}
               </form>
             ) : (
               <>
@@ -112,6 +133,9 @@ export default function ClienteFichaPage() {
               </>
             )}
             <h2>Historial</h2>
+            {row.appointments.length === 0 ? (
+              <p>Sin turnos.</p>
+            ) : (
             <ul>
               {row.appointments.map((item) => (
                 <li key={item.id}>
@@ -121,6 +145,7 @@ export default function ClienteFichaPage() {
                 </li>
               ))}
             </ul>
+            )}
           </>
         ) : null}
       </section>

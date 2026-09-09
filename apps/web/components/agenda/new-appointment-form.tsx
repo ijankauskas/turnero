@@ -52,7 +52,7 @@ export function NewAppointmentForm({
       apiJson<Client[]>('/clients'),
     ]).then(([b, c]) => {
       setBranches(b);
-      setClients(c);
+      setClients(c.filter((row) => row.active !== false));
       setBranchId((current) => current || initialBranchId || b[0]?.id || '');
       setClientId((current) => current || c[0]?.id || '');
     });

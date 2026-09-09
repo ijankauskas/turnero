@@ -42,6 +42,7 @@ export type Client = {
   firstName: string;
   lastName: string;
   phone: string;
+  active?: boolean;
 };
 
 export type ServiceOffer = {

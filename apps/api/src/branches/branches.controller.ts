@@ -32,4 +32,10 @@ export class BranchesController {
   ) {
     return this.branches.update(user, id, dto);
   }
+
+  @Post(':id/deactivate')
+  @Roles('ADMINISTRADOR')
+  deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.branches.update(user, id, { active: false });
+  }
 }

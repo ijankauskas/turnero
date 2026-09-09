@@ -148,6 +148,11 @@ export default function ReportesPage() {
             </tr>
           </thead>
           <tbody>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={4}>Sin turnos atendidos en el período.</td>
+              </tr>
+            ) : null}
             {items.map((row) => (
               <tr key={row.professionalId}>
                 <td>{row.name}</td>

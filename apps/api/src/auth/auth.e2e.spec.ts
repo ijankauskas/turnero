@@ -1,10 +1,10 @@
-import { INestApplication, ValidationPipe } from '@nestjs/common';
+import { INestApplication } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
 import { PrismaClient } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 import request from 'supertest';
 import { AppModule } from '../app.module';
-import { HttpErrorFilter } from '../common/http-error.filter';
+import { configureApp } from '../configure-app';
 import { createTenantClient } from '../tenant/create-tenant-client';
 
 const prisma = new PrismaClient();
@@ -90,15 +90,7 @@ describe('auth + tenant (AUTH-001 TEN-002)', () => {
     }).compile();
 
     app = moduleRef.createNestApplication();
-    app.setGlobalPrefix('api/v1');
-    app.useGlobalPipes(
-      new ValidationPipe({
-        whitelist: true,
-        forbidNonWhitelisted: true,
-        transform: true,
-      }),
-    );
-    app.useGlobalFilters(new HttpErrorFilter());
+    configureApp(app);
     await app.init();
   });
 
@@ -253,5 +245,16 @@ describe('auth + tenant (AUTH-001 TEN-002)', () => {
     expect(own?.id).toBe(branchA.id);
     const listed = await tenantA.branch.findMany();
     expect(listed.every((row) => row.companyId === companyA.id)).toBe(true);
+  });
+
+  it('sets security headers and echoes X-Request-Id (SEC-005 INF-007)', async () => {
+    const health = await request(app.getHttpServer())
+      .get('/api/v1/health')
+      .set('X-Request-Id', 'rid-turnero-test');
+    expect(health.status).toBe(200);
+    expect(health.headers['x-content-type-options']).toBe('nosniff');
+    expect(health.headers['x-frame-options']).toBe('DENY');
+    expect(health.headers['x-request-id']).toBe('rid-turnero-test');
+    expect(health.headers['strict-transport-security']).toBeUndefined();
   });
 });

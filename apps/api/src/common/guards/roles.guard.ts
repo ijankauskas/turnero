@@ -36,11 +36,24 @@ export class RolesGuard implements CanActivate {
 
     const request = context
       .switchToHttp()
-      .getRequest<{ user?: AuthenticatedUser; method?: string; url?: string }>();
+      .getRequest<{
+        user?: AuthenticatedUser;
+        method?: string;
+        url?: string;
+        requestId?: string;
+      }>();
     const user = request.user;
     if (!user || !roles.includes(user.role)) {
       this.logger.warn(
-        `authz deny role=${user?.role ?? 'anon'} need=${roles.join(',')} ${request.method} ${request.url}`,
+        JSON.stringify({
+          event: 'authz_deny',
+          requestId: request.requestId,
+          userId: user?.id,
+          role: user?.role ?? 'anon',
+          need: roles,
+          method: request.method,
+          path: request.url,
+        }),
       );
       throw new ForbiddenException('No tenés permiso para esta acción');
     }

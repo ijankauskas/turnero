@@ -40,4 +40,10 @@ export class ClientsController {
   ) {
     return this.clients.update(user, id, dto);
   }
+
+  @Post(':id/deactivate')
+  @Roles('ADMINISTRADOR', 'ENCARGADO', 'RECEPCION')
+  deactivate(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.clients.update(user, id, { active: false });
+  }
 }

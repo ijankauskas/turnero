@@ -191,10 +191,10 @@ export default function AgendaPage() {
   return (
     <AppShell>
       <section
+        className="agenda-layout"
         style={{
           padding: '1rem 1.25rem',
           display: 'grid',
-          gridTemplateColumns: '240px 1fr auto',
           gap: 16,
           alignItems: 'start',
         }}
@@ -354,6 +354,9 @@ export default function AgendaPage() {
             ) : null}
           </header>
           {error ? <p role="alert">{error}</p> : null}
+          {view === 'day' && visiblePros.length === 0 ? (
+            <p>No hay profesionales activos para mostrar.</p>
+          ) : null}
           {view === 'day' ? (
             <DayGrid
               professionals={visiblePros}

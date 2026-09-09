@@ -94,9 +94,20 @@ export default function ConfigSucursalesPage() {
                   }
                 }}
               />
+              {row.active === false ? (
+                ' (inactiva)'
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void patch(row.id, { active: false })}
+                >
+                  Desactivar
+                </button>
+              )}
             </li>
           ))}
         </ul>
+        {rows.length === 0 ? <p>No hay sucursales.</p> : null}
         <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
           <h2>Nueva sucursal</h2>
           <input

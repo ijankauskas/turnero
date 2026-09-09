@@ -54,12 +54,13 @@ export class ClientsService {
       hiddenNotFound();
     }
     if (user.role === 'PROFESIONAL') {
-      const allowed = row.appointments.some(
+      const mine = row.appointments.filter(
         (item) => item.professionalId === user.professionalId,
       );
-      if (!allowed) {
+      if (!mine.length) {
         hiddenNotFound();
       }
+      return { ...row, appointments: mine };
     }
     return row;
   }

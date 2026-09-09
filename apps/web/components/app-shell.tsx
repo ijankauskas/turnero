@@ -82,6 +82,7 @@ export function AppShell({
       }}
     >
       <header
+        className="app-header"
         style={{
           display: 'flex',
           alignItems: 'center',

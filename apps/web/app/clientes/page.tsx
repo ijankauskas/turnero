@@ -10,6 +10,7 @@ type Client = {
   lastName: string;
   phone: string;
   email: string | null;
+  active?: boolean;
 };
 
 export default function ClientesPage() {
@@ -101,6 +102,7 @@ export default function ClientesPage() {
             ))}
           </ul>
         ) : null}
+        {rows.length === 0 ? <p>No hay clientes todavía.</p> : null}
         <table style={{ width: '100%', marginTop: 16, background: '#fff' }}>
           <thead>
             <tr>
@@ -116,6 +118,7 @@ export default function ClientesPage() {
                   <a href={`/clientes/${row.id}`}>
                     {row.lastName}, {row.firstName}
                   </a>
+                  {row.active === false ? ' (inactivo)' : ''}
                 </td>
                 <td>{row.phone}</td>
                 <td>{row.email ?? '—'}</td>
