@@ -181,6 +181,7 @@ export default function AgendaPage() {
       setDate(input.date);
       setView('day');
     }
+    setSelected(null);
     setCreate({
       professionalId: input.professionalId,
       time: input.time ?? '10:00',
@@ -410,7 +411,10 @@ export default function AgendaPage() {
               appointments={appointments}
               timeZone={timezone}
               canCreate={canWrite}
-              onSelect={setSelected}
+              onSelect={(item) => {
+                setCreate(null);
+                setSelected(item);
+              }}
               onCreateSlot={(professionalId, time) =>
                 openCreate({ professionalId, time, date })
               }
@@ -423,7 +427,10 @@ export default function AgendaPage() {
               professionals={visiblePros}
               appointments={appointments}
               canCreate={canWrite}
-              onSelect={setSelected}
+              onSelect={(item) => {
+                setCreate(null);
+                setSelected(item);
+              }}
               onCreateSlot={(professionalId, day) =>
                 openCreate({ professionalId, date: day, time: '10:00' })
               }
@@ -446,7 +453,22 @@ export default function AgendaPage() {
           ) : null}
         </div>
 
-        {selected ? (
+        {create && canWrite ? (
+          <NewAppointmentForm
+            key={`${create.date ?? date}-${create.professionalId ?? ''}-${create.time ?? ''}`}
+            date={create.date ?? date}
+            timezone={timezone}
+            professionals={visiblePros.length ? visiblePros : professionals}
+            initialProfessionalId={create.professionalId}
+            initialTime={create.time}
+            initialBranchId={branchId || undefined}
+            onClose={() => setCreate(null)}
+            onCreated={() => {
+              setCreate(null);
+              void load();
+            }}
+          />
+        ) : selected ? (
           <AppointmentPanel
             appointment={
               appointments.find((row) => row.id === selected.id) ?? selected
@@ -461,22 +483,6 @@ export default function AgendaPage() {
         ) : (
           <div />
         )}
-
-        {create && canWrite ? (
-          <NewAppointmentForm
-            date={create.date ?? date}
-            timezone={timezone}
-            professionals={visiblePros.length ? visiblePros : professionals}
-            initialProfessionalId={create.professionalId}
-            initialTime={create.time}
-            initialBranchId={branchId || undefined}
-            onClose={() => setCreate(null)}
-            onCreated={() => {
-              setCreate(null);
-              void load();
-            }}
-          />
-        ) : null}
       </section>
     </AppShell>
   );

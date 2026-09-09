@@ -2,13 +2,14 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { apiJson } from '../../lib/session';
-import { formatClock, zonedLocalToUtc } from '../../lib/datetime';
+import { formatClock, formatLongDate, zonedLocalToUtc } from '../../lib/datetime';
 import type { Branch, Client, Professional, ServiceOffer } from './types';
 import {
   Alert,
   btnGhost,
   btnPrimary,
   btnSoft,
+  cardClass,
   cn,
   inputClass,
   labelClass,
@@ -161,13 +162,34 @@ export function NewAppointmentForm({
     }
   }
 
+  const dateLabel = formatLongDate(date, timezone);
+  const professionalName =
+    professionals.find((row) => row.id === professionalId)?.displayName ?? '';
+
   return (
-    <div className="fixed inset-0 z-40 grid place-items-center bg-ink/35 p-4 backdrop-blur-[2px]">
+    <aside
+      className={cn(
+        cardClass,
+        'sticky top-4 flex max-h-[calc(100vh-2rem)] w-full max-w-[380px] flex-col self-start overflow-hidden',
+      )}
+    >
+      <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+        <div>
+          <h2 className="m-0 text-lg font-semibold">Nuevo turno</h2>
+          <p className="mt-1 text-sm capitalize text-muted">
+            {dateLabel}
+            {time ? ` · ${time}` : ''}
+            {professionalName ? ` · ${professionalName}` : ''}
+          </p>
+        </div>
+        <button type="button" onClick={onClose} className={btnGhost}>
+          Cerrar
+        </button>
+      </header>
       <form
         onSubmit={onSubmit}
-        className="grid max-h-[90vh] w-full max-w-[460px] gap-3 overflow-auto rounded-xl border border-line bg-paper p-6 shadow-soft"
+        className="grid flex-1 gap-3 overflow-auto px-5 py-4"
       >
-        <h2 className="m-0 text-xl font-semibold">Nuevo turno</h2>
         <label className={labelClass}>
           Sucursal
           <select
@@ -354,7 +376,7 @@ export function NewAppointmentForm({
           />
         </label>
         {error ? <Alert>{error}</Alert> : null}
-        <div className="mt-1 flex justify-end gap-2">
+        <div className="sticky bottom-0 -mx-5 mt-1 flex justify-end gap-2 border-t border-line bg-paper px-5 py-3">
           <button type="button" onClick={onClose} className={btnGhost}>
             Cancelar
           </button>
@@ -363,6 +385,6 @@ export function NewAppointmentForm({
           </button>
         </div>
       </form>
-    </div>
+    </aside>
   );
 }
