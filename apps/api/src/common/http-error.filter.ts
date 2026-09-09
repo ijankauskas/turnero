@@ -26,9 +26,11 @@ export class HttpErrorFilter implements ExceptionFilter {
           : (payload as Record<string, unknown>);
       response.status(status).json({
         statusCode: status,
-        error: httpErrorName(status),
+        error:
+          typeof body.error === 'string' ? body.error : httpErrorName(status),
         message: body.message ?? exception.message,
-        details: body.details ?? body.message,
+        details: body.details,
+        companies: body.companies,
       });
       return;
     }

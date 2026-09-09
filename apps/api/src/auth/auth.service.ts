@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -89,14 +88,18 @@ export class AuthService {
     });
 
     if (matches.length > 1) {
-      throw new BadRequestException({
-        error: 'COMPANY_REQUIRED',
-        message: COMPANY_REQUIRED_ERROR,
-        companies: matches.map((row) => ({
-          slug: row.company.slug,
-          name: row.company.name,
-        })),
-      });
+      throw new HttpException(
+        {
+          statusCode: HttpStatus.BAD_REQUEST,
+          error: 'COMPANY_REQUIRED',
+          message: COMPANY_REQUIRED_ERROR,
+          companies: matches.map((row) => ({
+            slug: row.company.slug,
+            name: row.company.name,
+          })),
+        },
+        HttpStatus.BAD_REQUEST,
+      );
     }
 
     return this.finishLogin(matches[0] ?? null, password);

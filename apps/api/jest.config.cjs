@@ -6,4 +6,10 @@ module.exports = {
   testRegex: '.*\\.spec\\.ts$',
   setupFiles: ['<rootDir>/../jest.setup.cjs'],
   testTimeout: 30000,
+  transform: {
+    '^.+\\.(t|j)s$': ['ts-jest', { tsconfig: '<rootDir>/../tsconfig.json' }],
+  },
+  transformIgnorePatterns: [
+    'node_modules/(?!(.*@nestjs/.*|.*passport.*))',
+  ],
 };
