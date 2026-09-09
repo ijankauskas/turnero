@@ -11,7 +11,7 @@ import {
   btnPrimary,
   cardClass,
   cn,
-  inputClass,
+  controlClass,
   Page,
   PageTitle,
   tdClass,
@@ -123,19 +123,19 @@ export default function ReportesPage() {
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className={cn(inputClass, 'mt-0 w-auto')}
+            className={cn(controlClass, 'mt-0')}
           />
           <input
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className={cn(inputClass, 'mt-0 w-auto')}
+            className={cn(controlClass, 'mt-0')}
           />
           {role === 'ADMINISTRADOR' ? (
             <select
               value={branchId}
               onChange={(e) => setBranchId(e.target.value)}
-              className={cn(inputClass, 'mt-0 w-auto')}
+              className={cn(controlClass, 'mt-0')}
             >
               <option value="">Todas</option>
               {branches.map((row) => (

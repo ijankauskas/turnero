@@ -10,6 +10,7 @@ import {
   btnPrimary,
   cardClass,
   cn,
+  controlClass,
   inputClass,
   labelClass,
   Page,
@@ -380,7 +381,7 @@ export default function ConfigProfesionalesPage() {
                     onChange={(e) =>
                       updateBlock(index, { weekday: Number(e.target.value) })
                     }
-                    className={cn(inputClass, 'mt-0 w-auto')}
+                    className={cn(controlClass, 'mt-0')}
                   >
                     {DAYS.map((day, weekday) => (
                       <option key={day} value={weekday}>
@@ -393,7 +394,7 @@ export default function ConfigProfesionalesPage() {
                     onChange={(e) =>
                       updateBlock(index, { branchId: e.target.value })
                     }
-                    className={cn(inputClass, 'mt-0 w-auto')}
+                    className={cn(controlClass, 'mt-0')}
                   >
                     {branches.map((row) => (
                       <option key={row.id} value={row.id}>
@@ -407,7 +408,7 @@ export default function ConfigProfesionalesPage() {
                     onChange={(e) =>
                       updateBlock(index, { startTime: e.target.value })
                     }
-                    className={cn(inputClass, 'mt-0 w-auto')}
+                    className={cn(controlClass, 'mt-0')}
                   />
                   <input
                     type="time"
@@ -415,7 +416,7 @@ export default function ConfigProfesionalesPage() {
                     onChange={(e) =>
                       updateBlock(index, { endTime: e.target.value })
                     }
-                    className={cn(inputClass, 'mt-0 w-auto')}
+                    className={cn(controlClass, 'mt-0')}
                   />
                   <label className="flex items-center gap-2 text-sm">
                     <input

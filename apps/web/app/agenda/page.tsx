@@ -36,7 +36,7 @@ import {
   btnSoft,
   cardClass,
   cn,
-  inputClass,
+  controlClass,
   textareaClass,
 } from '../../components/ui';
 
@@ -378,7 +378,7 @@ export default function AgendaPage() {
               <select
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
-                className={cn(inputClass, 'mt-0 w-auto min-w-[180px] py-2')}
+                className={cn(controlClass, 'mt-0 min-w-[180px] py-2')}
               >
                 <option value="">Todas las sucursales</option>
                 {branches.map((row) => (

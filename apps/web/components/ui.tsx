@@ -9,8 +9,10 @@ export const pageClass = 'mx-auto w-full max-w-6xl px-5 py-6 md:px-8';
 export const cardClass =
   'rounded-2xl border border-line/90 bg-paper shadow-soft';
 
-export const inputClass =
-  'mt-1.5 block w-full rounded-xl border border-line bg-white px-3 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted/55 focus:border-ink/35 focus:ring-2 focus:ring-ink/10 disabled:bg-cream disabled:text-muted';
+export const controlClass =
+  'mt-1.5 rounded-xl border border-line bg-white px-3 py-2.5 text-[15px] text-ink outline-none transition placeholder:text-muted/55 focus:border-ink/35 focus:ring-2 focus:ring-ink/10 disabled:bg-cream disabled:text-muted';
+
+export const inputClass = cn(controlClass, 'block w-full');
 
 export const textareaClass = cn(inputClass, 'min-h-[92px] resize-y');
 
