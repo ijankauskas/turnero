@@ -94,11 +94,12 @@ export default function AgendaPage() {
       ),
       isStaff ? apiJson<Branch[]>('/branches') : Promise.resolve([] as Branch[]),
     ]);
-    setProfessionals(pros);
+    const agendaPros = pros.filter((row) => row.active !== false);
+    setProfessionals(agendaPros);
     setAppointments(appts);
     setBranches(branchRows);
     setSelectedPros((current) => {
-      const ids = pros.map((row) => row.id);
+      const ids = agendaPros.map((row) => row.id);
       if (current.size === 0) {
         return new Set(ids);
       }

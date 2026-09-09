@@ -5,9 +5,11 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import type { NotificationType } from '@turnero/shared';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildAppointmentEmail } from './email-templates';
 import { MailerService } from './mailer.service';
+import { bumpEmailRetry } from './retry';
 
 const TICK_MS = 4000;
 
@@ -116,9 +118,14 @@ export class NotificationsProcessor implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       this.logger.warn(`job ${id} failed: ${message}`);
+      const next = bumpEmailRetry(job.payload);
       await this.prisma.notificationJob.update({
         where: { id },
-        data: { status: 'FAILED', error: message.slice(0, 500) },
+        data: {
+          status: next.giveUp ? 'FAILED' : 'PENDING',
+          error: message.slice(0, 500),
+          payload: next.payload as Prisma.InputJsonValue,
+        },
       });
     }
   }

@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
+import { monthEnd, monthStart, todayInZone } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
 import type { MeResponse } from '../../lib/types';
 
@@ -22,9 +23,17 @@ type Daily = {
 
 type Branch = { id: string; name: string };
 
+function money(value: number) {
+  return value.toLocaleString('es-AR');
+}
+
+function csvCell(value: string | number) {
+  return `"${String(value).replace(/"/g, '""')}"`;
+}
+
 export default function ReportesPage() {
-  const [from, setFrom] = useState('2026-09-01');
-  const [to, setTo] = useState('2026-09-30');
+  const [from, setFrom] = useState('');
+  const [to, setTo] = useState('');
   const [branchId, setBranchId] = useState('');
   const [branches, setBranches] = useState<Branch[]>([]);
   const [items, setItems] = useState<Item[]>([]);
@@ -32,21 +41,26 @@ export default function ReportesPage() {
   const [error, setError] = useState<string | null>(null);
   const [role, setRole] = useState<string>('');
 
-  async function load() {
+  async function load(nextFrom = from, nextTo = to, nextBranch = branchId) {
     const me = await apiJson<MeResponse>('/auth/me');
     setRole(me.user.role);
+    if (!nextFrom || !nextTo) {
+      const today = todayInZone(me.company.timezone);
+      nextFrom = monthStart(today);
+      nextTo = monthEnd(today);
+      setFrom(nextFrom);
+      setTo(nextTo);
+    }
     const branchRows = await apiJson<Branch[]>('/branches');
     setBranches(branchRows);
-    const qs = branchId ? `&branchId=${branchId}` : '';
+    const qs = nextBranch ? `&branchId=${nextBranch}` : '';
     if (me.user.role === 'ADMINISTRADOR' || me.user.role === 'ENCARGADO') {
       const data = await apiJson<{ items: Item[] }>(
-        `/reports/professionals?from=${from}T00:00:00.000Z&to=${to}T23:59:59.000Z${qs}`,
+        `/reports/professionals?from=${nextFrom}&to=${nextTo}${qs}`,
       );
       setItems(data.items);
     }
-    const day = await apiJson<Daily>(
-      `/reports/daily?date=${from}${qs}`,
-    );
+    const day = await apiJson<Daily>(`/reports/daily?date=${nextFrom}${qs}`);
     setDaily(day);
   }
 
@@ -54,8 +68,42 @@ export default function ReportesPage() {
     void load().catch((err: Error) => setError(err.message));
   }, []);
 
+  const totals = useMemo(
+    () =>
+      items.reduce(
+        (acc, row) => ({
+          turnos: acc.turnos + row.turnos,
+          facturado: acc.facturado + row.facturado,
+          aPagar: acc.aPagar + row.aPagar,
+        }),
+        { turnos: 0, facturado: 0, aPagar: 0 },
+      ),
+    [items],
+  );
+
+  function downloadCsv() {
+    const header = ['Persona', 'Turnos', 'Facturado', 'A pagar'].join(';');
+    const lines = items.map((row) =>
+      [csvCell(row.name), row.turnos, row.facturado, row.aPagar].join(';'),
+    );
+    lines.push(
+      [csvCell('Total'), totals.turnos, totals.facturado, totals.aPagar].join(
+        ';',
+      ),
+    );
+    const blob = new Blob([`\uFEFF${[header, ...lines].join('\n')}`], {
+      type: 'text/csv;charset=utf-8;',
+    });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `reportes-${from}-${to}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR', 'ENCARGADO']}>
       <section style={{ padding: '1.25rem' }}>
         <h1>Reportes</h1>
         <input
@@ -80,12 +128,14 @@ export default function ReportesPage() {
         <button type="button" onClick={() => void load()}>
           Actualizar
         </button>
+        <button type="button" onClick={downloadCsv} disabled={!items.length}>
+          Descargar CSV
+        </button>
         {error ? <p role="alert">{error}</p> : null}
         {daily ? (
           <p>
-            Cifras del {from}: {daily.count} turnos · $
-            {daily.facturado.toLocaleString('es-AR')} · ocupación{' '}
-            {daily.occupancyPercent}%
+            Cifras del {from}: {daily.count} turnos · ${money(daily.facturado)}{' '}
+            · ocupación {daily.occupancyPercent}%
           </p>
         ) : null}
         <table style={{ width: '100%', marginTop: 16, background: '#fff' }}>
@@ -102,11 +152,27 @@ export default function ReportesPage() {
               <tr key={row.professionalId}>
                 <td>{row.name}</td>
                 <td align="center">{row.turnos}</td>
-                <td align="right">${row.facturado.toLocaleString('es-AR')}</td>
-                <td align="right">${row.aPagar.toLocaleString('es-AR')}</td>
+                <td align="right">${money(row.facturado)}</td>
+                <td align="right">${money(row.aPagar)}</td>
               </tr>
             ))}
           </tbody>
+          <tfoot>
+            <tr>
+              <td>
+                <strong>Total</strong>
+              </td>
+              <td align="center">
+                <strong>{totals.turnos}</strong>
+              </td>
+              <td align="right">
+                <strong>${money(totals.facturado)}</strong>
+              </td>
+              <td align="right">
+                <strong>${money(totals.aPagar)}</strong>
+              </td>
+            </tr>
+          </tfoot>
         </table>
       </section>
     </AppShell>

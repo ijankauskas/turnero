@@ -4,7 +4,7 @@ import { AppShell } from '../../components/app-shell';
 
 export default function ConfigPage() {
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR']}>
       <section style={{ padding: '1.25rem' }}>
         <h1>Configuración</h1>
         <ul>

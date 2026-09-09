@@ -4,6 +4,7 @@ export type Professional = {
   id: string;
   displayName: string;
   color: string;
+  active?: boolean;
   branches?: Array<{ id: string; name: string }>;
 };
 

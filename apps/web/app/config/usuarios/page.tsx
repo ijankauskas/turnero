@@ -77,7 +77,7 @@ export default function ConfigUsuariosPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR']}>
       <section style={{ padding: '1.25rem' }}>
         <h1>Usuarios</h1>
         {error ? <p role="alert">{error}</p> : null}

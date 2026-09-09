@@ -24,6 +24,10 @@ export function nextMonthStart(isoDate: string): string {
   return `${year}-${String(month + 1).padStart(2, '0')}-01`;
 }
 
+export function monthEnd(isoDate: string): string {
+  return addDays(nextMonthStart(isoDate), -1);
+}
+
 export function todayInZone(timeZone: string): string {
   return dateInZone(new Date(), timeZone);
 }

@@ -24,7 +24,13 @@ type MeResponse = {
   };
 };
 
-export function AppShell({ children }: { children: ReactNode }) {
+export function AppShell({
+  children,
+  allow,
+}: {
+  children: ReactNode;
+  allow?: string[];
+}) {
   const router = useRouter();
   const [me, setMe] = useState<MeResponse | null>(null);
 
@@ -47,7 +53,15 @@ export function AppShell({ children }: { children: ReactNode }) {
       });
   }, [router]);
 
-  if (!me) {
+  const forbidden = Boolean(me && allow && !allow.includes(me.user.role));
+
+  useEffect(() => {
+    if (forbidden) {
+      router.replace('/agenda');
+    }
+  }, [forbidden, router]);
+
+  if (!me || forbidden) {
     return (
       <p style={{ padding: '2rem', textAlign: 'center' }}>Cargando…</p>
     );
@@ -77,7 +91,16 @@ export function AppShell({ children }: { children: ReactNode }) {
           borderBottom: `3px solid ${accent}`,
         }}
       >
-        <strong>{me.company.name}</strong>
+        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          {me.company.logoUrl ? (
+            <img
+              src={me.company.logoUrl}
+              alt={me.company.name}
+              style={{ height: 28, maxWidth: 120, objectFit: 'contain' }}
+            />
+          ) : null}
+          <strong>{me.company.name}</strong>
+        </span>
         <nav style={{ display: 'flex', gap: 16, fontSize: 14 }}>
           <a href="/agenda">Agenda</a>
           {!isProfessional ? <a href="/clientes">Clientes</a> : null}

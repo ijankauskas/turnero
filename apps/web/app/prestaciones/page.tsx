@@ -59,7 +59,7 @@ export default function PrestacionesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION']}>
       <section style={{ padding: '1.25rem' }}>
         <h1>Prestaciones</h1>
         {error ? <p role="alert">{error}</p> : null}

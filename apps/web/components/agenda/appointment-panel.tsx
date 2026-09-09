@@ -2,7 +2,12 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { apiJson } from '../../lib/session';
-import { formatClock, formatLongInstant } from '../../lib/datetime';
+import {
+  dateInZone,
+  formatClock,
+  formatLongInstant,
+  zonedLocalToUtc,
+} from '../../lib/datetime';
 import type { Appointment } from './types';
 import { STATUS_LABEL } from './types';
 
@@ -36,16 +41,18 @@ export function AppointmentPanel({
   const [internalNotes, setInternalNotes] = useState(
     appointment.internalNotes ?? '',
   );
+  const [time, setTime] = useState(formatClock(appointment.startAt, timeZone));
 
   useEffect(() => {
     setWa(null);
     setError(null);
     setObservations(appointment.observations ?? '');
     setInternalNotes(appointment.internalNotes ?? '');
+    setTime(formatClock(appointment.startAt, timeZone));
     void apiJson<{ url: string }>(
       `/appointments/${appointment.id}/whatsapp-link`,
     ).then((row) => setWa(row.url));
-  }, [appointment]);
+  }, [appointment, timeZone]);
 
   async function setStatus(status: string) {
     setError(null);
@@ -66,6 +73,23 @@ export function AppointmentPanel({
       await apiJson(`/appointments/${appointment.id}/paid`, {
         method: 'POST',
         body: JSON.stringify({ paid }),
+      });
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function saveTime(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      const date = dateInZone(new Date(appointment.startAt), timeZone);
+      await apiJson(`/appointments/${appointment.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          startAt: zonedLocalToUtc(date, time, timeZone).toISOString(),
+        }),
       });
       onChanged();
     } catch (err) {
@@ -135,6 +159,22 @@ export function AppointmentPanel({
         {formatClock(appointment.startAt, timeZone)} –{' '}
         {formatClock(appointment.endAt, timeZone)} hs
       </p>
+      {canWrite && appointment.status !== 'CANCELADO' ? (
+        <form
+          onSubmit={saveTime}
+          style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+        >
+          <label>
+            Hora
+            <input
+              type="time"
+              value={time}
+              onChange={(e) => setTime(e.target.value)}
+            />
+          </label>
+          <button type="submit">Cambiar hora</button>
+        </form>
+      ) : null}
       <p>
         {appointment.client.firstName} {appointment.client.lastName}
         <br />

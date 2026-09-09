@@ -6,6 +6,7 @@ import { apiJson } from '../../../lib/session';
 
 type Company = {
   name: string;
+  logoUrl: string | null;
   primaryColor: string | null;
   secondaryColor: string | null;
   contactEmail: string;
@@ -33,6 +34,7 @@ export default function ConfigEmpresaPage() {
         method: 'PATCH',
         body: JSON.stringify({
           name: row.name,
+          logoUrl: row.logoUrl || null,
           primaryColor: row.primaryColor,
           secondaryColor: row.secondaryColor,
           contactEmail: row.contactEmail,
@@ -48,7 +50,7 @@ export default function ConfigEmpresaPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR']}>
       <section style={{ padding: '1.25rem' }}>
         <h1>Empresa</h1>
         {error ? <p role="alert">{error}</p> : null}
@@ -60,6 +62,16 @@ export default function ConfigEmpresaPage() {
               <input
                 value={row.name}
                 onChange={(e) => setRow({ ...row, name: e.target.value })}
+              />
+            </label>
+            <label>
+              Logo (URL)
+              <input
+                value={row.logoUrl ?? ''}
+                onChange={(e) =>
+                  setRow({ ...row, logoUrl: e.target.value || null })
+                }
+                placeholder="https://…"
               />
             </label>
             <label>

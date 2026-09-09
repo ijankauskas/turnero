@@ -11,6 +11,7 @@ import { money } from '../common/http';
 import { scopedAppointmentQuery } from '../common/list-scope';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
 import { occupancyPercent } from './occupancy';
+import { parseReportRange } from './range';
 
 @Injectable()
 export class ReportsService {
@@ -22,10 +23,12 @@ export class ReportsService {
   ) {
     const branchId = this.forcedBranch(user, query.branchId);
     const db = this.tenants.forCompany(user.companyId);
+    const company = await db.company.findFirstOrThrow();
+    const range = parseReportRange(query.from, query.to, company.timezone);
     const rows = await db.appointment.findMany({
       where: {
         status: 'ATENDIDO',
-        startAt: { gte: new Date(query.from), lt: new Date(query.to) },
+        startAt: { gte: range.start, lt: range.end },
         ...(branchId ? { branchId } : {}),
       },
       include: { professional: true },

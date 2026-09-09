@@ -40,6 +40,11 @@ export function NewAppointmentForm({
   const [observations, setObservations] = useState('');
   const [clientQuery, setClientQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [newClient, setNewClient] = useState(false);
+  const [newFirstName, setNewFirstName] = useState('');
+  const [newLastName, setNewLastName] = useState('');
+  const [newPhone, setNewPhone] = useState('');
+  const [clientMatches, setClientMatches] = useState<Client[]>([]);
 
   useEffect(() => {
     void Promise.all([
@@ -88,6 +93,42 @@ export function NewAppointmentForm({
       row.phone.includes(q)
     );
   });
+
+  async function createClient(forceCreate = false) {
+    setError(null);
+    try {
+      const created = await apiJson<Client>('/clients', {
+        method: 'POST',
+        body: JSON.stringify({
+          firstName: newFirstName,
+          lastName: newLastName,
+          phone: newPhone,
+          forceCreate,
+        }),
+      });
+      setClients((rows) => [created, ...rows]);
+      setClientId(created.id);
+      setClientQuery(`${created.lastName} ${created.firstName}`);
+      setNewClient(false);
+      setClientMatches([]);
+      setNewFirstName('');
+      setNewLastName('');
+      setNewPhone('');
+    } catch (err) {
+      const typed = err as Error & {
+        status?: number;
+        body?: { matches?: Client[]; error?: string };
+      };
+      if (typed.status === 409 && typed.body?.error === 'DUPLICATE_PHONE') {
+        setClientMatches(typed.body.matches ?? []);
+        setError(
+          'Ya hay un cliente con ese teléfono. Elegilo o confirmá si es otra persona.',
+        );
+        return;
+      }
+      setError(typed.message);
+    }
+  }
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -196,6 +237,70 @@ export function NewAppointmentForm({
             ))}
           </select>
         </label>
+        <button
+          type="button"
+          onClick={() => {
+            setNewClient((current) => !current);
+            setClientMatches([]);
+          }}
+        >
+          {newClient ? 'Usar cliente existente' : 'Nuevo cliente'}
+        </button>
+        {newClient ? (
+          <div style={{ display: 'grid', gap: 6 }}>
+            <input
+              placeholder="Nombre"
+              value={newFirstName}
+              onChange={(e) => setNewFirstName(e.target.value)}
+            />
+            <input
+              placeholder="Apellido"
+              value={newLastName}
+              onChange={(e) => setNewLastName(e.target.value)}
+            />
+            <input
+              placeholder="Teléfono"
+              value={newPhone}
+              onChange={(e) => setNewPhone(e.target.value)}
+            />
+            <button
+              type="button"
+              onClick={() => void createClient(false)}
+              disabled={!newFirstName || !newLastName || !newPhone}
+            >
+              Crear cliente
+            </button>
+            {clientMatches.length > 0 ? (
+              <>
+                <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13 }}>
+                  {clientMatches.map((row) => (
+                    <li key={row.id}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setClientId(row.id);
+                          setClients((rows) =>
+                            rows.some((item) => item.id === row.id)
+                              ? rows
+                              : [row, ...rows],
+                          );
+                          setNewClient(false);
+                          setClientMatches([]);
+                          setError(null);
+                        }}
+                      >
+                        Usar {row.lastName}, {row.firstName}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+                <button type="button" onClick={() => void createClient(true)}>
+                  Es otra persona: crear igual
+                </button>
+              </>
+            ) : null}
+          </div>
+        ) : null}
         <label>
           Hora
           <input

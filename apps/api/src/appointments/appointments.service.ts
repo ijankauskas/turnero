@@ -196,8 +196,20 @@ export class AppointmentsService {
 
   async setPaid(user: AuthenticatedUser, id: string, paid: boolean) {
     this.assertWriter(user);
-    await this.loadVisible(user, id);
-    const updated = await this.tenants.forCompany(user.companyId).appointment.update({
+    const current = await this.loadVisible(user, id);
+    const db = this.tenants.forCompany(user.companyId);
+    if (paid && !current.paid) {
+      await db.payment.create({
+        data: {
+          companyId: user.companyId,
+          appointmentId: id,
+          amount: current.price,
+          paidAt: new Date(),
+          createdByUserId: user.id,
+        },
+      });
+    }
+    const updated = await db.appointment.update({
       where: { id },
       data: { paid },
       include: appointmentInclude,

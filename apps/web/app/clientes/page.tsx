@@ -74,7 +74,7 @@ export default function ClientesPage() {
   }
 
   return (
-    <AppShell>
+    <AppShell allow={['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION']}>
       <section style={{ padding: '1.25rem' }}>
         <h1 style={{ marginTop: 0 }}>Clientes</h1>
         <input

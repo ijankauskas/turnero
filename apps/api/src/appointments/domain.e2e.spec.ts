@@ -259,6 +259,7 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
   afterAll(async () => {
     await prisma.notificationJob.deleteMany({ where: { companyId } });
     await prisma.dailyNote.deleteMany({ where: { companyId } });
+    await prisma.payment.deleteMany({ where: { companyId } });
     await prisma.appointment.deleteMany({ where: { companyId } });
     await prisma.professionalService.deleteMany({ where: { companyId } });
     await prisma.workSchedule.deleteMany({ where: { companyId } });
@@ -461,5 +462,151 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       )
       .set('Authorization', `Bearer ${juanToken}`);
     expect(stolen.status).toBe(404);
+  });
+
+  it('records Payment, scopes reports and retries email jobs (PAY-001 RPT TEN-005 NTF-006 SEC-003)', async () => {
+    const rejected = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        companyId,
+        branchId: centroId,
+        professionalId: juanProId,
+        clientId,
+        serviceId: corteId,
+        startAt: zonedLocalToUtc(
+          '2026-09-09',
+          '12:00',
+          'America/Argentina/Buenos_Aires',
+        ).toISOString(),
+      });
+    expect(rejected.status).toBe(400);
+
+    const startAt = zonedLocalToUtc(
+      '2026-09-09',
+      '15:00',
+      'America/Argentina/Buenos_Aires',
+    ).toISOString();
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: centroId,
+        professionalId: juanProId,
+        clientId,
+        serviceId: corteId,
+        startAt,
+      });
+    expect(created.status).toBe(201);
+
+    const paid = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${created.body.id}/paid`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ paid: true });
+    expect(paid.status).toBe(201);
+    expect(paid.body.paid).toBe(true);
+    const payment = await prisma.payment.findFirst({
+      where: { appointmentId: created.body.id },
+    });
+    expect(payment).toBeTruthy();
+    expect(Number(payment?.amount)).toBe(10000);
+
+    const unpaid = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${created.body.id}/paid`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ paid: false });
+    expect(unpaid.body.paid).toBe(false);
+    const stillPaid = await prisma.payment.findMany({
+      where: { appointmentId: created.body.id },
+    });
+    expect(stillPaid).toHaveLength(1);
+
+    const attended = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${created.body.id}/status`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ status: 'ATENDIDO' });
+    expect(attended.status).toBe(201);
+    expect(attended.body.status).toBe('ATENDIDO');
+
+    const report = await request(app.getHttpServer())
+      .get('/api/v1/reports/professionals?from=2026-09-01&to=2026-09-09')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(report.status).toBe(200);
+    expect(report.body.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          professionalId: juanProId,
+          turnos: 1,
+          facturado: 10000,
+          aPagar: 4000,
+        }),
+      ]),
+    );
+
+    const noraOther = await request(app.getHttpServer())
+      .get(
+        `/api/v1/reports/professionals?from=2026-09-01&to=2026-09-09&branchId=${norteId}`,
+      )
+      .set('Authorization', `Bearer ${noraToken}`);
+    expect(noraOther.status).toBe(403);
+
+    const noraOwn = await request(app.getHttpServer())
+      .get('/api/v1/reports/professionals?from=2026-09-01&to=2026-09-09')
+      .set('Authorization', `Bearer ${noraToken}`);
+    expect(noraOwn.status).toBe(200);
+    expect(
+      noraOwn.body.items.some(
+        (row: { professionalId: string }) => row.professionalId === juanProId,
+      ),
+    ).toBe(true);
+
+    const silent = await request(app.getHttpServer())
+      .post('/api/v1/clients')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        firstName: 'Sin',
+        lastName: 'Mail',
+        phone: `1100${suffix.slice(-6)}`,
+      });
+    expect(silent.status).toBe(201);
+    const silentAppt = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: centroId,
+        professionalId: juanProId,
+        clientId: silent.body.id,
+        serviceId: corteId,
+        startAt: zonedLocalToUtc(
+          '2026-09-09',
+          '16:00',
+          'America/Argentina/Buenos_Aires',
+        ).toISOString(),
+      });
+    expect(silentAppt.status).toBe(201);
+    const job = await prisma.notificationJob.create({
+      data: {
+        companyId,
+        appointmentId: silentAppt.body.id,
+        channel: 'EMAIL',
+        type: 'CREATED',
+        status: 'PENDING',
+        payload: {},
+      },
+    });
+    const processor = app.get(NotificationsProcessor);
+    let row = await prisma.notificationJob.findUniqueOrThrow({
+      where: { id: job.id },
+    });
+    for (let i = 0; i < 5 && row.status === 'PENDING'; i += 1) {
+      await processor.processOne(row.id);
+      row = await prisma.notificationJob.findUniqueOrThrow({
+        where: { id: job.id },
+      });
+    }
+    expect(row.status).toBe('FAILED');
+    expect((row.payload as { retries?: number }).retries).toBeGreaterThanOrEqual(
+      3,
+    );
   });
 });

@@ -116,8 +116,18 @@ export function LoginForm({
             textTransform: 'uppercase',
             fontSize: 12,
             color: accent,
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
           }}
         >
+          {branding?.logoUrl ? (
+            <img
+              src={branding.logoUrl}
+              alt=""
+              style={{ height: 28, objectFit: 'contain' }}
+            />
+          ) : null}
           {title}
         </p>
         <h1 style={{ margin: '0.4rem 0 0.3rem', fontSize: 28 }}>{subtitle}</h1>
