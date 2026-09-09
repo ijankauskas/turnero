@@ -90,6 +90,7 @@ model Company {
   payments              Payment[]
   notificationJobs      NotificationJob[]
   dailyNotes            DailyNote[]
+  refreshTokens         RefreshToken[]
 
   @@map("companies")
 }
@@ -141,10 +142,28 @@ model User {
   createdAppointments     Appointment[]  @relation("AppointmentCreatedBy")
   cancelledAppointments   Appointment[]  @relation("AppointmentCancelledBy")
   createdPayments         Payment[]      @relation("PaymentCreatedBy")
+  refreshTokens           RefreshToken[]
 
   @@unique([companyId, email])
   @@index([companyId])
   @@map("users")
+}
+
+model RefreshToken {
+  id        String    @id @default(uuid())
+  companyId String    @map("company_id")
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  company Company @relation(fields: [companyId], references: [id])
+  user    User    @relation(fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([companyId])
+  @@map("refresh_tokens")
 }
 
 model Professional {

@@ -50,6 +50,11 @@ export default async function HomePage() {
             3001.
           </p>
         )}
+        <p>
+          <a href="/login">Ingresar</a>
+          {' · '}
+          <a href="/e/studio-elegance/login">Studio Élégance</a>
+        </p>
       </section>
     </main>
   );

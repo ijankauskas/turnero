@@ -35,6 +35,19 @@ npm run dev:api   # http://localhost:3001/api/v1/health
 npm run dev:web   # http://localhost:3000
 ```
 
+Usuarios de seed (contraseña `Turnero123!`):
+
+| Email | Empresa | Rol |
+| --- | --- | --- |
+| `admin@turnero.test` | Studio Élégance **y** Clínica Norte (hace falta el slug) | Administrador |
+| `nora@studioelegance.example` | `studio-elegance` | Encargada |
+| `lucia@studioelegance.example` | `studio-elegance` | Recepción |
+| `juan@studioelegance.example` | `studio-elegance` | Profesional |
+| `noelia@studioelegance.example` | `studio-elegance` | Profesional |
+| `baja@studioelegance.example` | `studio-elegance` | Inactivo (no entra) |
+
+Login: http://localhost:3000/login o http://localhost:3000/e/studio-elegance/login
+
 Si no hay Docker, con Postgres 16 local:
 
 ```bash

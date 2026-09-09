@@ -4,4 +4,6 @@ module.exports = {
   testEnvironment: 'node',
   rootDir: 'src',
   testRegex: '.*\\.spec\\.ts$',
+  setupFiles: ['<rootDir>/../jest.setup.cjs'],
+  testTimeout: 30000,
 };

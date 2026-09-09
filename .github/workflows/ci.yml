@@ -24,6 +24,10 @@ jobs:
           --health-retries 10
     env:
       DATABASE_URL: postgresql://turnero:turnero@localhost:5432/turnero?schema=public
+      JWT_SECRET: ci-test-jwt-secret
+      JWT_EXPIRES_IN: 15m
+      JWT_REFRESH_EXPIRES_IN: 7d
+      LOGIN_RATE_LIMIT: "100"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
