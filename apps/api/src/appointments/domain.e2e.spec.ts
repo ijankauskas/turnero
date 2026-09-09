@@ -673,7 +673,7 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
           'America/Argentina/Buenos_Aires',
         ).toISOString(),
       });
-    expect(blocked.status).toBe(404);
+    expect(blocked.status).toBe(400);
 
     const history = await request(app.getHttpServer())
       .get('/api/v1/appointments?date=2026-09-09')
