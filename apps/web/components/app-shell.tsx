@@ -2,6 +2,7 @@
 
 import { ReactNode, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { ROLE_LABEL } from '../lib/labels';
 import {
   apiFetch,
   clearSession,
@@ -85,7 +86,8 @@ export function AppShell({ children }: { children: ReactNode }) {
           {canSeeConfig ? <a href="/config">Configuración</a> : null}
         </nav>
         <span style={{ fontSize: 13 }}>
-          {me.user.firstName} {me.user.lastName} · {me.user.role}
+          {me.user.firstName} {me.user.lastName} ·{' '}
+          {ROLE_LABEL[me.user.role] ?? me.user.role}
           {' · '}
           <button
             type="button"

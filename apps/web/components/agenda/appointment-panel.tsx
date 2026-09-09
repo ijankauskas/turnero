@@ -30,14 +30,22 @@ export function AppointmentPanel({
   const [error, setError] = useState<string | null>(null);
   const [wa, setWa] = useState<string | null>(null);
   const [reason, setReason] = useState('');
+  const [observations, setObservations] = useState(
+    appointment.observations ?? '',
+  );
+  const [internalNotes, setInternalNotes] = useState(
+    appointment.internalNotes ?? '',
+  );
 
   useEffect(() => {
     setWa(null);
     setError(null);
+    setObservations(appointment.observations ?? '');
+    setInternalNotes(appointment.internalNotes ?? '');
     void apiJson<{ url: string }>(
       `/appointments/${appointment.id}/whatsapp-link`,
     ).then((row) => setWa(row.url));
-  }, [appointment.id]);
+  }, [appointment]);
 
   async function setStatus(status: string) {
     setError(null);
@@ -65,6 +73,23 @@ export function AppointmentPanel({
     }
   }
 
+  async function saveNotes(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      await apiJson(`/appointments/${appointment.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          observations: observations || null,
+          internalNotes: internalNotes || null,
+        }),
+      });
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
   async function cancel(event: FormEvent) {
     event.preventDefault();
     setError(null);
@@ -80,6 +105,7 @@ export function AppointmentPanel({
   }
 
   const dateLabel = formatLongInstant(appointment.startAt, timeZone);
+  const clientId = appointment.client.id ?? appointment.clientId;
 
   return (
     <aside
@@ -113,6 +139,12 @@ export function AppointmentPanel({
         {appointment.client.firstName} {appointment.client.lastName}
         <br />
         {appointment.client.phone}
+        {clientId ? (
+          <>
+            <br />
+            <a href={`/clientes/${clientId}`}>Ver ficha</a>
+          </>
+        ) : null}
       </p>
       <p>Profesional: {appointment.professional.displayName}</p>
       <p>Sucursal: {appointment.branch.name}</p>
@@ -120,7 +152,29 @@ export function AppointmentPanel({
         Estado: <strong>{STATUS_LABEL[appointment.status] ?? appointment.status}</strong>
       </p>
       <p>${appointment.price.toLocaleString('es-AR')}</p>
-      {appointment.observations ? <p>Obs.: {appointment.observations}</p> : null}
+      {canWrite ? (
+        <form onSubmit={saveNotes} style={{ display: 'grid', gap: 6 }}>
+          <label>
+            Observaciones (cliente)
+            <textarea
+              value={observations}
+              onChange={(e) => setObservations(e.target.value)}
+              rows={2}
+            />
+          </label>
+          <label>
+            Notas internas
+            <textarea
+              value={internalNotes}
+              onChange={(e) => setInternalNotes(e.target.value)}
+              rows={2}
+            />
+          </label>
+          <button type="submit">Guardar notas</button>
+        </form>
+      ) : appointment.observations ? (
+        <p>Obs.: {appointment.observations}</p>
+      ) : null}
       {error ? <p role="alert">{error}</p> : null}
       {wa ? (
         <p>

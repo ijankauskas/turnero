@@ -2,8 +2,10 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { apiJson } from '../../lib/session';
-import { zonedLocalToUtc } from '../../lib/datetime';
+import { formatClock, zonedLocalToUtc } from '../../lib/datetime';
 import type { Branch, Client, Professional, ServiceOffer } from './types';
+
+type Slot = { startAt: string; endAt: string };
 
 export function NewAppointmentForm({
   date,
@@ -27,6 +29,7 @@ export function NewAppointmentForm({
   const [branches, setBranches] = useState<Branch[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [offers, setOffers] = useState<ServiceOffer[]>([]);
+  const [slots, setSlots] = useState<Slot[]>([]);
   const [branchId, setBranchId] = useState(initialBranchId ?? '');
   const [professionalId, setProfessionalId] = useState(
     initialProfessionalId || professionals[0]?.id || '',
@@ -34,6 +37,8 @@ export function NewAppointmentForm({
   const [clientId, setClientId] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [time, setTime] = useState(initialTime ?? '10:00');
+  const [observations, setObservations] = useState('');
+  const [clientQuery, setClientQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -52,11 +57,37 @@ export function NewAppointmentForm({
     if (!professionalId) return;
     void apiJson<ServiceOffer[]>(`/professionals/${professionalId}/services`).then(
       (rows) => {
-        setOffers(rows);
-        setServiceId(rows[0]?.serviceId ?? '');
+        const active = rows.filter((row) => row.active !== false);
+        setOffers(active);
+        setServiceId((current) =>
+          active.some((row) => row.serviceId === current)
+            ? current
+            : (active[0]?.serviceId ?? ''),
+        );
       },
     );
   }, [professionalId]);
+
+  useEffect(() => {
+    if (!professionalId || !branchId || !serviceId || !date) {
+      setSlots([]);
+      return;
+    }
+    void apiJson<{ slots: Slot[] }>(
+      `/appointments/availability?professionalId=${professionalId}&branchId=${branchId}&date=${date}&serviceId=${serviceId}`,
+    )
+      .then((row) => setSlots(row.slots))
+      .catch(() => setSlots([]));
+  }, [professionalId, branchId, serviceId, date]);
+
+  const visibleClients = clients.filter((row) => {
+    const q = clientQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (
+      `${row.lastName} ${row.firstName}`.toLowerCase().includes(q) ||
+      row.phone.includes(q)
+    );
+  });
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
@@ -70,6 +101,7 @@ export function NewAppointmentForm({
           clientId,
           serviceId,
           startAt: zonedLocalToUtc(date, time, timezone).toISOString(),
+          observations: observations || undefined,
         }),
       });
       onCreated();
@@ -95,9 +127,11 @@ export function NewAppointmentForm({
           background: '#fff',
           padding: 20,
           borderRadius: 12,
-          width: 420,
+          width: 440,
           display: 'grid',
           gap: 8,
+          maxHeight: '90vh',
+          overflow: 'auto',
         }}
       >
         <h2 style={{ margin: 0 }}>Nuevo turno</h2>
@@ -135,10 +169,19 @@ export function NewAppointmentForm({
           >
             {offers.map((row) => (
               <option key={row.serviceId} value={row.serviceId}>
-                {row.serviceName} ({row.durationMinutes} min)
+                {row.serviceName} ({row.durationMinutes} min) · $
+                {row.price.toLocaleString('es-AR')}
               </option>
             ))}
           </select>
+        </label>
+        <label>
+          Buscar cliente
+          <input
+            value={clientQuery}
+            onChange={(e) => setClientQuery(e.target.value)}
+            placeholder="Nombre o teléfono"
+          />
         </label>
         <label>
           Cliente
@@ -146,7 +189,7 @@ export function NewAppointmentForm({
             value={clientId}
             onChange={(e) => setClientId(e.target.value)}
           >
-            {clients.map((row) => (
+            {visibleClients.map((row) => (
               <option key={row.id} value={row.id}>
                 {row.lastName}, {row.firstName} · {row.phone}
               </option>
@@ -159,6 +202,36 @@ export function NewAppointmentForm({
             type="time"
             value={time}
             onChange={(e) => setTime(e.target.value)}
+          />
+        </label>
+        {slots.length ? (
+          <div>
+            <div style={{ fontSize: 13, marginBottom: 4 }}>Horarios libres</div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+              {slots.slice(0, 16).map((slot) => {
+                const clock = formatClock(slot.startAt, timezone);
+                return (
+                  <button
+                    key={slot.startAt}
+                    type="button"
+                    onClick={() => setTime(clock)}
+                    style={{
+                      fontWeight: clock === time ? 700 : 400,
+                    }}
+                  >
+                    {clock}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : null}
+        <label>
+          Observaciones
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            rows={2}
           />
         </label>
         {error ? <p role="alert">{error}</p> : null}

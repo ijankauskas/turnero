@@ -48,6 +48,7 @@ export type ServiceOffer = {
   serviceName: string;
   durationMinutes: number;
   price: number;
+  active?: boolean;
 };
 
 export type DailyReport = {

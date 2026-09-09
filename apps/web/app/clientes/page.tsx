@@ -19,6 +19,7 @@ export default function ClientesPage() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
   const [matches, setMatches] = useState<Client[]>([]);
 
   async function load(search = query) {
@@ -37,11 +38,18 @@ export default function ClientesPage() {
     try {
       await apiJson('/clients', {
         method: 'POST',
-        body: JSON.stringify({ firstName, lastName, phone, forceCreate }),
+        body: JSON.stringify({
+          firstName,
+          lastName,
+          phone,
+          email: email || undefined,
+          forceCreate,
+        }),
       });
       setFirstName('');
       setLastName('');
       setPhone('');
+      setEmail('');
       setMatches([]);
       await load();
     } catch (err) {
@@ -51,7 +59,9 @@ export default function ClientesPage() {
       };
       if (typed.status === 409 && typed.body?.error === 'DUPLICATE_PHONE') {
         setMatches((typed.body.matches as Client[]) ?? []);
-        setError('Ya hay un cliente con ese teléfono. Confirmá para crear otro.');
+        setError(
+          'Ya hay un cliente con ese teléfono. Si es otra persona, confirmá para crear igual.',
+        );
         return;
       }
       setError(typed.message);
@@ -79,6 +89,18 @@ export default function ClientesPage() {
           Buscar
         </button>
         {error ? <p role="alert">{error}</p> : null}
+        {matches.length > 0 ? (
+          <ul>
+            {matches.map((row) => (
+              <li key={row.id}>
+                Coincide:{' '}
+                <a href={`/clientes/${row.id}`}>
+                  {row.lastName}, {row.firstName} · {row.phone}
+                </a>
+              </li>
+            ))}
+          </ul>
+        ) : null}
         <table style={{ width: '100%', marginTop: 16, background: '#fff' }}>
           <thead>
             <tr>
@@ -121,10 +143,16 @@ export default function ClientesPage() {
             onChange={(e) => setPhone(e.target.value)}
             required
           />
+          <input
+            type="email"
+            placeholder="Email (opcional)"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
           <button type="submit">Crear</button>
           {matches.length > 0 ? (
             <button type="button" onClick={() => void create(true)}>
-              Crear igual
+              Es otra persona: crear igual
             </button>
           ) : null}
         </form>

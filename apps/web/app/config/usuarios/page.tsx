@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
+import { ROLE_LABEL } from '../../../lib/labels';
 import { apiJson } from '../../../lib/session';
 
 type User = {
@@ -52,9 +53,23 @@ export default function ConfigUsuariosPage() {
         body: JSON.stringify({
           ...form,
           branchId:
-            form.role === 'ADMINISTRADOR' ? undefined : form.branchId,
+            form.role === 'ADMINISTRADOR' || form.role === 'PROFESIONAL'
+              ? form.role === 'ADMINISTRADOR'
+                ? undefined
+                : form.branchId || undefined
+              : form.branchId,
         }),
       });
+      await load();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function deactivate(id: string) {
+    setError(null);
+    try {
+      await apiJson(`/users/${id}/deactivate`, { method: 'POST' });
       await load();
     } catch (err) {
       setError((err as Error).message);
@@ -69,8 +84,17 @@ export default function ConfigUsuariosPage() {
         <ul>
           {rows.map((row) => (
             <li key={row.id}>
-              {row.lastName}, {row.firstName} · {row.email} · {row.role}
+              {row.lastName}, {row.firstName} · {row.email} ·{' '}
+              {ROLE_LABEL[row.role] ?? row.role}
               {row.active ? '' : ' (inactivo)'}
+              {row.active ? (
+                <>
+                  {' '}
+                  <button type="button" onClick={() => void deactivate(row.id)}>
+                    Desactivar
+                  </button>
+                </>
+              ) : null}
             </li>
           ))}
         </ul>
@@ -105,21 +129,24 @@ export default function ConfigUsuariosPage() {
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
           >
-            <option>ADMINISTRADOR</option>
-            <option>ENCARGADO</option>
-            <option>RECEPCION</option>
-            <option>PROFESIONAL</option>
-          </select>
-          <select
-            value={form.branchId}
-            onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-          >
-            {branches.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name}
+            {Object.entries(ROLE_LABEL).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
               </option>
             ))}
           </select>
+          {form.role !== 'ADMINISTRADOR' ? (
+            <select
+              value={form.branchId}
+              onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+            >
+              {branches.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
           <button type="submit">Crear</button>
         </form>
       </section>

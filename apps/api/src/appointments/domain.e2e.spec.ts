@@ -445,4 +445,21 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       });
     expect(pro.status).toBe(403);
   });
+
+  it('lists availability slots after a cancel (AVL-001)', async () => {
+    const avail = await request(app.getHttpServer())
+      .get(
+        `/api/v1/appointments/availability?professionalId=${juanProId}&branchId=${centroId}&date=2026-09-09&serviceId=${corteId}`,
+      )
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(avail.status).toBe(200);
+    expect(avail.body.durationMinutes).toBe(45);
+    expect(avail.body.slots.length).toBeGreaterThan(0);
+    const stolen = await request(app.getHttpServer())
+      .get(
+        `/api/v1/appointments/availability?professionalId=${noeliaProId}&branchId=${norteId}&date=2026-09-09&serviceId=${corteId}`,
+      )
+      .set('Authorization', `Bearer ${juanToken}`);
+    expect(stolen.status).toBe(404);
+  });
 });

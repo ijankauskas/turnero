@@ -16,6 +16,7 @@ type Company = {
 export default function ConfigEmpresaPage() {
   const [row, setRow] = useState<Company | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     void apiJson<Company>('/company')
@@ -26,8 +27,9 @@ export default function ConfigEmpresaPage() {
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     if (!row) return;
+    setSaved(false);
     try {
-      const saved = await apiJson<Company>('/company', {
+      const next = await apiJson<Company>('/company', {
         method: 'PATCH',
         body: JSON.stringify({
           name: row.name,
@@ -38,7 +40,8 @@ export default function ConfigEmpresaPage() {
           timezone: row.timezone,
         }),
       });
-      setRow(saved);
+      setRow(next);
+      setSaved(true);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -49,20 +52,58 @@ export default function ConfigEmpresaPage() {
       <section style={{ padding: '1.25rem' }}>
         <h1>Empresa</h1>
         {error ? <p role="alert">{error}</p> : null}
+        {saved ? <p>Guardado. Recargá para ver el branding en el menú.</p> : null}
         {row ? (
           <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
-            <input
-              value={row.name}
-              onChange={(e) => setRow({ ...row, name: e.target.value })}
-            />
-            <input
-              value={row.primaryColor ?? ''}
-              onChange={(e) => setRow({ ...row, primaryColor: e.target.value })}
-            />
-            <input
-              value={row.contactEmail}
-              onChange={(e) => setRow({ ...row, contactEmail: e.target.value })}
-            />
+            <label>
+              Nombre
+              <input
+                value={row.name}
+                onChange={(e) => setRow({ ...row, name: e.target.value })}
+              />
+            </label>
+            <label>
+              Color principal
+              <input
+                type="color"
+                value={row.primaryColor || '#1a1a1a'}
+                onChange={(e) => setRow({ ...row, primaryColor: e.target.value })}
+              />
+            </label>
+            <label>
+              Color de fondo
+              <input
+                type="color"
+                value={row.secondaryColor || '#f6f4f1'}
+                onChange={(e) =>
+                  setRow({ ...row, secondaryColor: e.target.value })
+                }
+              />
+            </label>
+            <label>
+              Email de contacto
+              <input
+                type="email"
+                value={row.contactEmail}
+                onChange={(e) => setRow({ ...row, contactEmail: e.target.value })}
+              />
+            </label>
+            <label>
+              Teléfono
+              <input
+                value={row.contactPhone ?? ''}
+                onChange={(e) =>
+                  setRow({ ...row, contactPhone: e.target.value || null })
+                }
+              />
+            </label>
+            <label>
+              Zona horaria
+              <input
+                value={row.timezone}
+                onChange={(e) => setRow({ ...row, timezone: e.target.value })}
+              />
+            </label>
             <button type="submit">Guardar</button>
           </form>
         ) : null}

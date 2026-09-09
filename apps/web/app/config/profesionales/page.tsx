@@ -8,6 +8,7 @@ type Professional = {
   id: string;
   displayName: string;
   color: string;
+  title: string | null;
   branches: Array<{ id: string; name: string }>;
 };
 type Block = {
@@ -18,14 +19,33 @@ type Block = {
   isOff: boolean;
 };
 type Branch = { id: string; name: string };
+type CatalogService = {
+  id: string;
+  name: string;
+  durationMinutes: number;
+  basePrice: number;
+  active: boolean;
+};
+type Offer = {
+  serviceId: string;
+  price: number;
+  remunerationType: 'PERCENT' | 'FIXED';
+  remunerationValue: number;
+  active: boolean;
+};
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 export default function ConfigProfesionalesPage() {
   const [rows, setRows] = useState<Professional[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
+  const [catalog, setCatalog] = useState<CatalogService[]>([]);
   const [selected, setSelected] = useState<string | null>(null);
+  const [displayName, setDisplayName] = useState('');
+  const [color, setColor] = useState('#888888');
+  const [branchIds, setBranchIds] = useState<string[]>([]);
   const [schedule, setSchedule] = useState<Block[]>([]);
+  const [offers, setOffers] = useState<Record<string, Offer>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -33,18 +53,34 @@ export default function ConfigProfesionalesPage() {
     void Promise.all([
       apiJson<Professional[]>('/professionals'),
       apiJson<Branch[]>('/branches'),
+      apiJson<CatalogService[]>('/services'),
     ])
-      .then(([pros, b]) => {
+      .then(([pros, b, services]) => {
         setRows(pros);
         setBranches(b);
+        setCatalog(services);
       })
       .catch((err: Error) => setError(err.message));
   }, []);
 
-  async function openSchedule(id: string) {
+  async function openFicha(id: string) {
     setSelected(id);
+    setError(null);
     try {
-      setSchedule(await apiJson<Block[]>(`/professionals/${id}/schedule`));
+      const [pro, blocks, matrix] = await Promise.all([
+        apiJson<Professional>(`/professionals/${id}`),
+        apiJson<Block[]>(`/professionals/${id}/schedule`),
+        apiJson<Offer[]>(`/professionals/${id}/services`),
+      ]);
+      setDisplayName(pro.displayName);
+      setColor(pro.color);
+      setBranchIds(pro.branches.map((row) => row.id));
+      setSchedule(blocks);
+      const next: Record<string, Offer> = {};
+      for (const item of matrix) {
+        next[item.serviceId] = item;
+      }
+      setOffers(next);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -55,7 +91,7 @@ export default function ConfigProfesionalesPage() {
       ...current,
       {
         weekday: 0,
-        branchId: branches[0]?.id ?? '',
+        branchId: branchIds[0] || branches[0]?.id || '',
         startTime: '09:00',
         endTime: '18:00',
         isOff: false,
@@ -69,12 +105,50 @@ export default function ConfigProfesionalesPage() {
     );
   }
 
-  async function onSave(event: FormEvent) {
+  function toggleOffer(service: CatalogService, included: boolean) {
+    setOffers((current) => {
+      const copy = { ...current };
+      if (!included) {
+        delete copy[service.id];
+        return copy;
+      }
+      copy[service.id] = current[service.id] ?? {
+        serviceId: service.id,
+        price: service.basePrice,
+        remunerationType: 'PERCENT',
+        remunerationValue: 40,
+        active: true,
+      };
+      return copy;
+    });
+  }
+
+  async function saveFicha(event: FormEvent) {
     event.preventDefault();
     if (!selected) return;
     setSaving(true);
     setError(null);
     try {
+      await apiJson(`/professionals/${selected}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ displayName, color }),
+      });
+      await apiJson(`/professionals/${selected}/branches`, {
+        method: 'PUT',
+        body: JSON.stringify({ branchIds }),
+      });
+      await apiJson(`/professionals/${selected}/services`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          items: Object.values(offers).map((item) => ({
+            serviceId: item.serviceId,
+            price: Number(item.price),
+            remunerationType: item.remunerationType,
+            remunerationValue: Number(item.remunerationValue),
+            active: item.active,
+          })),
+        }),
+      });
       const saved = await apiJson<Block[]>(`/professionals/${selected}/schedule`, {
         method: 'PUT',
         body: JSON.stringify({
@@ -88,6 +162,7 @@ export default function ConfigProfesionalesPage() {
         }),
       });
       setSchedule(saved);
+      setRows(await apiJson<Professional[]>('/professionals'));
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -105,7 +180,7 @@ export default function ConfigProfesionalesPage() {
         <ul>
           {rows.map((row) => (
             <li key={row.id}>
-              <button type="button" onClick={() => void openSchedule(row.id)}>
+              <button type="button" onClick={() => void openFicha(row.id)}>
                 {row.displayName}
               </button>{' '}
               · {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
@@ -113,8 +188,128 @@ export default function ConfigProfesionalesPage() {
           ))}
         </ul>
         {selected && current ? (
-          <form onSubmit={onSave}>
-            <h2>Horario semanal de {current.displayName}</h2>
+          <form onSubmit={saveFicha}>
+            <h2>Ficha de {current.displayName}</h2>
+            <label>
+              Nombre en agenda
+              <input
+                value={displayName}
+                onChange={(e) => setDisplayName(e.target.value)}
+              />
+            </label>
+            <label>
+              Color
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+              />
+            </label>
+            <fieldset>
+              <legend>Sucursales</legend>
+              {branches.map((row) => (
+                <label key={row.id} style={{ display: 'block' }}>
+                  <input
+                    type="checkbox"
+                    checked={branchIds.includes(row.id)}
+                    onChange={(e) => {
+                      setBranchIds((currentIds) =>
+                        e.target.checked
+                          ? [...currentIds, row.id]
+                          : currentIds.filter((id) => id !== row.id),
+                      );
+                    }}
+                  />{' '}
+                  {row.name}
+                </label>
+              ))}
+            </fieldset>
+            <h3>Precio y comisión</h3>
+            <table style={{ width: '100%', background: '#fff' }}>
+              <thead>
+                <tr>
+                  <th align="left">Servicio</th>
+                  <th>Ofrece</th>
+                  <th>Precio</th>
+                  <th>Tipo</th>
+                  <th>Valor</th>
+                </tr>
+              </thead>
+              <tbody>
+                {catalog.map((service) => {
+                  const offer = offers[service.id];
+                  return (
+                    <tr key={service.id}>
+                      <td>
+                        {service.name} ({service.durationMinutes} min)
+                      </td>
+                      <td align="center">
+                        <input
+                          type="checkbox"
+                          checked={Boolean(offer)}
+                          onChange={(e) =>
+                            toggleOffer(service, e.target.checked)
+                          }
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          disabled={!offer}
+                          value={offer?.price ?? service.basePrice}
+                          onChange={(e) =>
+                            setOffers((currentOffers) => ({
+                              ...currentOffers,
+                              [service.id]: {
+                                ...currentOffers[service.id],
+                                price: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </td>
+                      <td>
+                        <select
+                          disabled={!offer}
+                          value={offer?.remunerationType ?? 'PERCENT'}
+                          onChange={(e) =>
+                            setOffers((currentOffers) => ({
+                              ...currentOffers,
+                              [service.id]: {
+                                ...currentOffers[service.id],
+                                remunerationType: e.target.value as
+                                  | 'PERCENT'
+                                  | 'FIXED',
+                              },
+                            }))
+                          }
+                        >
+                          <option value="PERCENT">%</option>
+                          <option value="FIXED">Fijo</option>
+                        </select>
+                      </td>
+                      <td>
+                        <input
+                          type="number"
+                          disabled={!offer}
+                          value={offer?.remunerationValue ?? 40}
+                          onChange={(e) =>
+                            setOffers((currentOffers) => ({
+                              ...currentOffers,
+                              [service.id]: {
+                                ...currentOffers[service.id],
+                                remunerationValue: Number(e.target.value),
+                              },
+                            }))
+                          }
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+            <h3>Horario semanal</h3>
             <p style={{ fontSize: 13, color: '#666' }}>
               Un profesional no puede tener dos sucursales el mismo día a la
               misma hora.
@@ -181,8 +376,8 @@ export default function ConfigProfesionalesPage() {
                 <button
                   type="button"
                   onClick={() =>
-                    setSchedule((current) =>
-                      current.filter((_, i) => i !== index),
+                    setSchedule((currentBlocks) =>
+                      currentBlocks.filter((_, i) => i !== index),
                     )
                   }
                 >
@@ -190,12 +385,12 @@ export default function ConfigProfesionalesPage() {
                 </button>
               </div>
             ))}
-            <div style={{ display: 'flex', gap: 8 }}>
+            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
               <button type="button" onClick={addBlock}>
                 Agregar bloque
               </button>
               <button type="submit" disabled={saving}>
-                Guardar horario
+                Guardar ficha
               </button>
             </div>
           </form>
