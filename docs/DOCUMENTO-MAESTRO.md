@@ -981,8 +981,9 @@ Listas:
 | Documento maestro | Fuente de verdad y este archivo |
 | Decisiones cerradas | A–H, inmutables salvo migración |
 | Épicas | Correspondencia con las secciones 1–14 |
-| Backlog MVP | Historias implementables, con criterios de aceptación |
-| Roadmap | Explicitamente post-MVP |
+| Backlog MVP | 25 historias espina, orden de construcción |
+| Detalle MVP | Historias atómicas (infra, dominio, pantallas, mails, seguridad) |
+| Roadmap | Explicitamente post-MVP y won't-do |
 
 Cada tarjeta de backlog incluye: contexto, objetivo, alcance, impacto en modelo, API, permisos, criterios de aceptación, fuera de alcance y dependencia. El detalle largo vive aquí; Trello lleva el resumen operativo (límite de descripción) más checklist de aceptación.
 
@@ -1048,6 +1049,10 @@ IDs estables:
 - `NTF-001` Cola de email created/updated/cancelled
 - `SEC-001` Tests e2e de tenant y RBAC
 
+### Detalle MVP (ver docs/TRELLO.md)
+
+Infra `INF-002`…`INF-007`. Tenant `TEN-002`…`TEN-005`. Auth `AUTH-004`…`AUTH-008`. Usuarios `USR-002`…`USR-004`. Sucursal `BRN-002`. Profesionales `PRO-003` `PRO-004`. Servicios `SVC-003` `SVC-004`. Clientes `CLI-002`…`CLI-004`. Turnos `APT-004`…`APT-008`. `PAY-001` `NOTE-001`. UI `UI-006`…`UI-023`. Emails `NTF-002`…`NTF-006`. Reportes `RPT-003`…`RPT-005`. Seguridad `SEC-002`…`SEC-005`.
+
 ### Roadmap
 
 - `FUT-001` Servicios compuestos
@@ -1057,7 +1062,14 @@ IDs estables:
 - `FUT-005` Recordatorio 24 h
 - `FUT-006` Reserva online
 - `FUT-007` Dominios custom
-- `FUT-008` Excepciones de horario y drag & drop
+- `FUT-008` Drag & drop
+- `FUT-009` Estados EN_ESPERA / REPROGRAMADO
+- `FUT-010` App nativa
+- `FUT-011` Multi-idioma
+- `FUT-012` Campana in-app
+- `FUT-013` Export CSV
+- `FUT-014` NO: liquidación AFIP
+- `FUT-015` Excepciones de horario / vacaciones
 
 ---
 
