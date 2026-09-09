@@ -55,6 +55,7 @@ export function AppShell({
   const router = useRouter();
   const pathname = usePathname();
   const [me, setMe] = useState<MeResponse | null>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
     if (!readSession()) {
@@ -75,6 +76,10 @@ export function AppShell({
       });
   }, [router]);
 
+  useEffect(() => {
+    setMenuOpen(false);
+  }, [pathname]);
+
   const forbidden = Boolean(me && allow && !allow.includes(me.user.role));
 
   useEffect(() => {
@@ -89,78 +94,122 @@ export function AppShell({
     );
   }
 
-  const accent = me.company.primaryColor ?? '#2c241c';
+  const accent = me.company.primaryColor ?? '#2563eb';
   const links = NAV.filter(
     (item) => !item.roles || item.roles.includes(me.user.role),
   );
 
+  function logout() {
+    const refresh = readSession()?.refreshToken;
+    if (refresh) {
+      void apiFetch('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({ refreshToken: refresh }),
+      });
+    }
+    clearSession();
+    router.replace('/login');
+  }
+
+  const nav = (
+    <>
+      <div className="flex items-center gap-2.5 px-4 py-5">
+        {me.company.logoUrl ? (
+          <img
+            src={me.company.logoUrl}
+            alt=""
+            className="h-8 max-w-[88px] rounded object-contain"
+          />
+        ) : (
+          <span
+            className="grid size-8 place-items-center rounded-lg text-sm font-bold text-white"
+            style={{ background: accent }}
+          >
+            {me.company.name.slice(0, 1)}
+          </span>
+        )}
+        <strong className="truncate text-[15px] font-semibold text-white">
+          {me.company.name}
+        </strong>
+      </div>
+      <nav className="flex flex-1 flex-col gap-0.5 px-2">
+        {links.map((item) => {
+          const current =
+            item.href === '/agenda'
+              ? pathname === '/agenda'
+              : pathname.startsWith(item.href);
+          return (
+            <a
+              key={item.href}
+              href={item.href}
+              aria-current={current ? 'page' : undefined}
+              className={cn(
+                'rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white',
+                current && 'bg-white/10 text-white',
+              )}
+              style={
+                current
+                  ? { boxShadow: `inset 3px 0 0 ${accent}` }
+                  : undefined
+              }
+            >
+              {item.label}
+            </a>
+          );
+        })}
+      </nav>
+      <div className="mt-auto border-t border-white/10 px-4 py-4">
+        <p className="truncate text-sm font-medium text-white">
+          {me.user.firstName} {me.user.lastName}
+        </p>
+        <p className="truncate text-xs text-slate-400">
+          {ROLE_LABEL[me.user.role] ?? me.user.role}
+        </p>
+        <button
+          type="button"
+          onClick={logout}
+          className="mt-3 w-full rounded-lg border border-white/15 px-3 py-1.5 text-sm text-slate-200 transition hover:bg-white/10"
+        >
+          Salir
+        </button>
+      </div>
+    </>
+  );
+
   return (
     <div
-      className="min-h-screen"
-      style={{
-        background: me.company.secondaryColor ?? '#f6f4f1',
-        ['--color-primary' as string]: accent,
-      }}
+      className="shell bg-canvas"
+      style={{ ['--color-primary' as string]: accent }}
     >
-      <header className="app-header sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line/80 bg-paper/90 px-5 py-3 backdrop-blur md:px-8">
-        <span className="flex min-w-0 items-center gap-3">
-          {me.company.logoUrl ? (
-            <img
-              src={me.company.logoUrl}
-              alt={me.company.name}
-              className="h-8 max-w-[120px] object-contain"
-            />
-          ) : null}
-          <strong className="truncate font-serif text-xl font-semibold tracking-tight">
-            {me.company.name}
-          </strong>
-        </span>
-        <nav className="flex flex-wrap items-center gap-1 text-sm text-muted">
-          {links.map((item) => {
-            const current =
-              item.href === '/agenda'
-                ? pathname === '/agenda'
-                : pathname.startsWith(item.href);
-            return (
-              <a
-                key={item.href}
-                href={item.href}
-                aria-current={current ? 'page' : undefined}
-                className={cn(
-                  'rounded-full px-3 py-1.5 transition hover:bg-cream hover:text-ink',
-                  current && 'bg-cream text-ink',
-                )}
-              >
-                {item.label}
-              </a>
-            );
-          })}
-        </nav>
-        <span className="flex items-center gap-3 text-[13px] text-muted">
-          <span className="hidden sm:inline">
-            {me.user.firstName} {me.user.lastName} ·{' '}
-            {ROLE_LABEL[me.user.role] ?? me.user.role}
-          </span>
+      {menuOpen ? (
+        <button
+          type="button"
+          aria-label="Cerrar menú"
+          className="fixed inset-0 z-30 bg-ink/40 lg:hidden"
+          onClick={() => setMenuOpen(false)}
+        />
+      ) : null}
+      <aside
+        className={cn(
+          'shell-nav flex min-h-screen flex-col bg-sidebar text-white',
+          menuOpen && 'is-open',
+        )}
+      >
+        {nav}
+      </aside>
+      <div className="min-w-0">
+        <div className="flex items-center gap-3 border-b border-line bg-paper px-4 py-3 lg:hidden">
           <button
             type="button"
-            onClick={() => {
-              const refresh = readSession()?.refreshToken;
-              if (refresh) {
-                void apiFetch('/auth/logout', {
-                  method: 'POST',
-                  body: JSON.stringify({ refreshToken: refresh }),
-                });
-              }
-              clearSession();
-              router.replace('/login');
-            }}
-            className="rounded-full border border-line bg-white px-3 py-1.5 text-ink transition hover:bg-cream"
+            className="rounded-lg border border-line px-2.5 py-1.5 text-sm"
+            onClick={() => setMenuOpen(true)}
           >
-            Salir
+            Menú
           </button>
-        </span>
-      </header>
-      {children}
+          <strong className="truncate text-sm">{me.company.name}</strong>
+        </div>
+        {children}
+      </div>
     </div>
   );
 }

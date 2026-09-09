@@ -37,7 +37,7 @@ export function LoginForm({
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [pending, setPending] = useState(false);
 
-  const accent = branding?.primaryColor ?? '#2c241c';
+  const accent = branding?.primaryColor ?? '#2563eb';
   const title = branding?.name ?? 'Turnero';
 
   const subtitle = useMemo(() => {
@@ -97,110 +97,123 @@ export function LoginForm({
   }
 
   return (
-    <main
-      className="grid min-h-screen place-items-center px-4 py-10"
-      style={{ background: branding?.secondaryColor ?? '#f6f4f1' }}
-    >
-      <form
-        onSubmit={onSubmit}
-        className="w-full max-w-[440px] rounded-3xl border border-line/80 bg-paper p-8 shadow-soft"
+    <main className="grid min-h-screen lg:grid-cols-[minmax(280px,42%)_1fr]">
+      <section
+        className="relative hidden flex-col justify-between bg-sidebar p-10 text-white lg:flex"
+        style={{
+          background: `linear-gradient(165deg, #0b1220 0%, ${accent} 160%)`,
+        }}
       >
-        <p
-          className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em]"
-          style={{ color: accent }}
-        >
+        <p className="flex items-center gap-3 text-sm font-semibold tracking-wide text-white/80">
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              className="h-7 object-contain"
+              className="h-8 rounded bg-white/10 object-contain p-1"
             />
           ) : null}
           {title}
         </p>
-        <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">
-          {subtitle}
-        </h1>
-        <p className="mt-2 mb-6 text-sm text-muted">
-          Email y contraseña. El tenant sale del login, no de un header.
-        </p>
+        <div>
+          <h1 className="max-w-sm text-4xl font-semibold tracking-tight">
+            {subtitle}
+          </h1>
+          <p className="mt-3 max-w-sm text-sm text-white/70">
+            Turnos, equipo y sucursales en un solo lugar.
+          </p>
+        </div>
+        <p className="text-xs text-white/50">Turnero</p>
+      </section>
+      <section className="grid place-items-center bg-canvas px-4 py-10">
+        <form
+          onSubmit={onSubmit}
+          className="w-full max-w-[400px] rounded-xl border border-line bg-paper p-7 shadow-soft"
+        >
+          <p className="lg:hidden text-sm font-semibold text-accent">{title}</p>
+          <h2 className="mt-1 text-2xl font-semibold tracking-tight">
+            Iniciar sesión
+          </h2>
+          <p className="mt-1 mb-6 text-sm text-muted">
+            Email y contraseña. El tenant sale del login, no de un header.
+          </p>
 
-        <label className={labelClass}>
-          Email
-          <input
-            type="email"
-            autoComplete="username"
-            required
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        <label className={cn(labelClass, 'mt-3')}>
-          Contraseña
-          <input
-            type="password"
-            autoComplete="current-password"
-            required
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        {!initialSlug ? (
-          <label className={cn(labelClass, 'mt-3')}>
-            Empresa (slug, opcional)
+          <label className={labelClass}>
+            Email
             <input
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="studio-elegance"
+              type="email"
+              autoComplete="username"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className={inputClass}
             />
           </label>
-        ) : null}
+          <label className={cn(labelClass, 'mt-3')}>
+            Contraseña
+            <input
+              type="password"
+              autoComplete="current-password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={inputClass}
+            />
+          </label>
+          {!initialSlug ? (
+            <label className={cn(labelClass, 'mt-3')}>
+              Empresa (slug, opcional)
+              <input
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="studio-elegance"
+                className={inputClass}
+              />
+            </label>
+          ) : null}
 
-        {companies.length > 0 ? (
-          <div className="mt-4 mb-2 flex flex-wrap gap-2">
-            {companies.map((company) => (
-              <button
-                key={company.slug}
-                type="button"
-                onClick={() => setSlug(company.slug)}
-                className={cn(
-                  'rounded-full px-3 py-1.5 text-sm',
-                  slug === company.slug
-                    ? 'bg-ink text-white'
-                    : 'bg-cream text-ink',
-                )}
-              >
-                {company.name}
-              </button>
-            ))}
-          </div>
-        ) : null}
+          {companies.length > 0 ? (
+            <div className="mt-4 mb-2 flex flex-wrap gap-2">
+              {companies.map((company) => (
+                <button
+                  key={company.slug}
+                  type="button"
+                  onClick={() => setSlug(company.slug)}
+                  className={cn(
+                    'rounded-lg px-3 py-1.5 text-sm',
+                    slug === company.slug
+                      ? 'bg-accent text-white'
+                      : 'bg-canvas text-ink',
+                  )}
+                >
+                  {company.name}
+                </button>
+              ))}
+            </div>
+          ) : null}
 
-        {error ? (
-          <div className="mt-4">
-            <Alert>{error}</Alert>
-          </div>
-        ) : null}
+          {error ? (
+            <div className="mt-4">
+              <Alert>{error}</Alert>
+            </div>
+          ) : null}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className={cn(btnPrimary, 'mt-6 w-full')}
-          style={{ background: accent }}
-        >
-          {pending ? 'Ingresando…' : 'Ingresar'}
-        </button>
-        {!branding ? (
-          <p className="mt-4 text-center text-sm text-muted">
-            <a href="/e/studio-elegance/login" className={btnGhost}>
-              Studio Élégance
-            </a>
-          </p>
-        ) : null}
-      </form>
+          <button
+            type="submit"
+            disabled={pending}
+            className={cn(btnPrimary, 'mt-6 w-full')}
+            style={{ background: accent }}
+          >
+            {pending ? 'Ingresando…' : 'Ingresar'}
+          </button>
+          {!branding ? (
+            <p className="mt-4 text-center text-sm text-muted">
+              <a href="/e/studio-elegance/login" className={btnGhost}>
+                Studio Élégance
+              </a>
+            </p>
+          ) : null}
+        </form>
+      </section>
     </main>
   );
 }

@@ -211,7 +211,7 @@ export default function ConfigProfesionalesPage() {
                   className={cn(
                     cardClass,
                     'w-full p-4 text-left transition hover:border-ink/20',
-                    selected === row.id && 'border-ink/40 bg-cream',
+                    selected === row.id && 'border-accent bg-accent/10',
                   )}
                 >
                   <span
@@ -231,7 +231,7 @@ export default function ConfigProfesionalesPage() {
           </ul>
           {selected && current ? (
             <form onSubmit={saveFicha} className={cn(cardClass, 'p-5')}>
-              <h2 className="mt-0 font-serif text-2xl">
+              <h2 className="mt-0 text-lg font-semibold">
                 Ficha de {current.displayName}
               </h2>
               <div className="grid gap-3 sm:grid-cols-2">
@@ -275,7 +275,7 @@ export default function ConfigProfesionalesPage() {
                   </label>
                 ))}
               </fieldset>
-              <h3 className="mt-6 font-serif text-xl">Precio y comisión</h3>
+              <h3 className="mt-6 text-xl">Precio y comisión</h3>
               <div className="overflow-x-auto rounded-2xl border border-line">
                 <table className="w-full">
                   <thead>
@@ -366,7 +366,7 @@ export default function ConfigProfesionalesPage() {
                   </tbody>
                 </table>
               </div>
-              <h3 className="mt-6 font-serif text-xl">Horario semanal</h3>
+              <h3 className="mt-6 text-xl">Horario semanal</h3>
               <p className="text-[13px] text-muted">
                 Un profesional no puede tener dos sucursales el mismo día a la
                 misma hora.

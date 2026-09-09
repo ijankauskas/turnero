@@ -133,7 +133,7 @@ export default function ConfigSucursalesPage() {
           <p className="text-sm text-muted">No hay sucursales.</p>
         ) : null}
         <form onSubmit={onSubmit} className={cn(cardClass, 'grid max-w-md gap-3 p-5')}>
-          <h2 className="m-0 font-serif text-2xl">Nueva sucursal</h2>
+          <h2 className="m-0 text-lg font-semibold">Nueva sucursal</h2>
           <input
             placeholder="Nombre"
             value={name}

@@ -62,7 +62,7 @@ export function WeekView({
           onClick={() => onOpenDay(day.iso)}
           className={cn(
             'border-l border-line px-2 py-3 text-sm font-semibold',
-            day.iso === date ? 'bg-cream' : 'bg-paper',
+            day.iso === date ? 'bg-canvas' : 'bg-paper',
           )}
         >
           {day.label}
@@ -94,7 +94,7 @@ export function WeekView({
               }
               className={cn(
                 'min-h-[72px] cursor-pointer border-t border-l border-line p-1',
-                day.iso === date ? 'bg-cream/60' : 'bg-paper',
+                day.iso === date ? 'bg-canvas' : 'bg-paper',
               )}
             >
               {ofDay.map((item) => (
@@ -105,7 +105,7 @@ export function WeekView({
                     event.stopPropagation();
                     onSelect(item);
                   }}
-                  className="mb-1 block w-full rounded-lg px-2 py-1 text-left text-[11px]"
+                  className="mb-1 block w-full rounded-md px-2 py-1 text-left text-[11px]"
                   style={apptSurface(pro.color)}
                 >
                   {item.serviceNameSnapshot}

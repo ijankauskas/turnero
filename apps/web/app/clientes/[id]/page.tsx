@@ -101,7 +101,7 @@ export default function ClienteFichaPage() {
         {row ? (
           <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
             <div className={cn(cardClass, 'p-5')}>
-              <h1 className="mt-0 font-serif text-4xl">
+              <h1 className="mt-0 text-2xl font-semibold">
                 {row.lastName}, {row.firstName}
               </h1>
               <p className="text-muted">Tel: {row.phone}</p>
@@ -163,7 +163,7 @@ export default function ClienteFichaPage() {
               )}
             </div>
             <div className={cn(cardClass, 'p-5')}>
-              <h2 className="mt-0 font-serif text-2xl">Historial</h2>
+              <h2 className="mt-0 text-lg font-semibold">Historial</h2>
               {row.appointments.length === 0 ? (
                 <p className="text-sm text-muted">Sin turnos.</p>
               ) : (
@@ -171,7 +171,7 @@ export default function ClienteFichaPage() {
                   {row.appointments.map((item) => (
                     <li
                       key={item.id}
-                      className="rounded-xl border border-line bg-cream/50 px-3 py-2 text-sm"
+                      className="rounded-lg border border-line bg-canvas px-3 py-2 text-sm"
                     >
                       {formatLongInstant(item.startAt, timezone)} ·{' '}
                       {item.serviceNameSnapshot} · {item.professional.displayName}{' '}

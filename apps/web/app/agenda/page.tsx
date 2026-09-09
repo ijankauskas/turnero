@@ -200,7 +200,7 @@ export default function AgendaPage() {
 
   return (
     <AppShell>
-      <section className="agenda-layout mx-auto grid w-full max-w-[1600px] items-start gap-5 px-5 py-5 md:px-8">
+      <section className="agenda-layout mx-auto grid w-full max-w-[1600px] items-start gap-4 px-4 py-4 md:px-6">
         <aside className="grid gap-4">
           <div className={cn(cardClass, 'p-4')}>
             <MiniCalendar
@@ -247,7 +247,7 @@ export default function AgendaPage() {
           ) : null}
           {isStaff && daily ? (
             <div className={cn(cardClass, 'p-4')}>
-              <h3 className="mt-0 mb-3 font-serif text-xl">El día</h3>
+              <h3 className="mt-0 mb-3 text-sm font-semibold">El día</h3>
               <p className="text-sm text-muted">
                 {live?.inProgress[0] ? (
                   <>
@@ -268,13 +268,13 @@ export default function AgendaPage() {
                   <dt className="text-[11px] uppercase tracking-wider text-muted">
                     Turnos
                   </dt>
-                  <dd className="font-serif text-2xl">{daily.count}</dd>
+                  <dd className="text-2xl font-semibold tabular-nums">{daily.count}</dd>
                 </div>
                 <div>
                   <dt className="text-[11px] uppercase tracking-wider text-muted">
                     Ocupación
                   </dt>
-                  <dd className="font-serif text-2xl">
+                  <dd className="text-2xl font-semibold tabular-nums">
                     {daily.occupancyPercent}%
                   </dd>
                 </div>
@@ -299,7 +299,7 @@ export default function AgendaPage() {
           ) : null}
           {isStaff ? (
             <div className={cn(cardClass, 'p-4')}>
-              <h3 className="mt-0 mb-3 font-serif text-xl">Notas del día</h3>
+              <h3 className="mt-0 mb-3 text-sm font-semibold">Notas del día</h3>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
@@ -321,7 +321,7 @@ export default function AgendaPage() {
 
         <div>
           <header className="mb-4 flex flex-wrap items-center gap-2">
-            <h1 className="mr-2 font-serif text-3xl font-medium capitalize tracking-tight">
+            <h1 className="mr-2 text-xl font-semibold capitalize tracking-tight">
               {title}
             </h1>
             <button
@@ -359,15 +359,15 @@ export default function AgendaPage() {
             >
               ›
             </button>
-            <div className="flex rounded-full border border-line bg-white p-0.5">
+            <div className="flex rounded-lg border border-line bg-white p-0.5">
               {(['day', 'week', 'month'] as AgendaView[]).map((item) => (
                 <button
                   key={item}
                   type="button"
                   onClick={() => setView(item)}
                   className={cn(
-                    'rounded-full px-3 py-1.5 text-sm',
-                    view === item ? 'bg-ink text-white' : 'text-muted',
+                    'rounded-md px-3 py-1.5 text-sm font-medium',
+                    view === item ? 'bg-accent text-white' : 'text-muted',
                   )}
                 >
                   {item === 'day' ? 'Día' : item === 'week' ? 'Semana' : 'Mes'}

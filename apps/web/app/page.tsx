@@ -1,4 +1,4 @@
-import { Page, PageTitle, cardClass, cn } from '../components/ui';
+import { Page, PageTitle, btnGhost, btnPrimary, cardClass, cn } from '../components/ui';
 
 const apiUrl =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
@@ -23,16 +23,18 @@ export default async function HomePage() {
 
   return (
     <Page className="py-16">
-      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
-        Turnero
-      </p>
+      <p className="text-xs font-semibold tracking-wide text-accent">Turnero</p>
       <PageTitle>Agenda SaaS</PageTitle>
       <p className="-mt-4 max-w-xl text-muted">
         Plataforma multiempresa para sucursales, profesionales y turnos. El
-        documento maestro está en <code className="rounded bg-white px-1.5 py-0.5 text-sm">docs/DOCUMENTO-MAESTRO.md</code>.
+        documento maestro está en{' '}
+        <code className="rounded bg-white px-1.5 py-0.5 text-sm">
+          docs/DOCUMENTO-MAESTRO.md
+        </code>
+        .
       </p>
       <section className={cn(cardClass, 'mt-8 max-w-xl p-6')}>
-        <h2 className="mt-0 font-serif text-2xl">API</h2>
+        <h2 className="mt-0 text-lg font-semibold">API</h2>
         {health ? (
           <p className="text-sm text-muted">
             Estado: <strong className="text-ink">{health.status}</strong>
@@ -45,16 +47,10 @@ export default async function HomePage() {
           </p>
         )}
         <p className="mt-4 flex flex-wrap gap-2">
-          <a
-            href="/login"
-            className="inline-flex rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
-          >
+          <a href="/login" className={btnPrimary}>
             Ingresar
           </a>
-          <a
-            href="/e/studio-elegance/login"
-            className="inline-flex rounded-full border border-line bg-white px-4 py-2 text-sm"
-          >
+          <a href="/e/studio-elegance/login" className={btnGhost}>
             Studio Élégance
           </a>
         </p>

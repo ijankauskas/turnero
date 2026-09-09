@@ -86,7 +86,7 @@ export function DayGrid({
             style={{
               height,
               backgroundImage:
-                'repeating-linear-gradient(to bottom, transparent 0, transparent 14px, #f3eee8 15px)',
+                'repeating-linear-gradient(to bottom, transparent 0, transparent 59px, #e2e8f0 60px)',
               cursor: canCreate ? 'pointer' : 'default',
             }}
           >
@@ -107,7 +107,7 @@ export function DayGrid({
                       event.stopPropagation();
                       onSelect(item);
                     }}
-                    className="absolute right-1.5 left-1.5 overflow-hidden rounded-xl px-2 py-1.5 text-xs shadow-sm"
+                    className="absolute right-1 left-1 overflow-hidden rounded-md px-2 py-1 text-xs"
                     style={{
                       top: Math.max(minutes, 0) * PX_PER_MINUTE,
                       height: item.durationMinutes * PX_PER_MINUTE,

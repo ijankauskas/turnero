@@ -143,9 +143,9 @@ export function AppointmentPanel({
   const clientId = appointment.client.id ?? appointment.clientId;
 
   return (
-    <aside className={cn(cardClass, 'sticky top-20 w-full max-w-[360px] self-start p-5')}>
+    <aside className={cn(cardClass, 'sticky top-4 w-full max-w-[360px] self-start p-5')}>
       <header className="mb-3 flex items-start justify-between gap-3">
-        <h2 className="m-0 font-serif text-2xl leading-tight">
+        <h2 className="m-0 text-lg font-semibold leading-tight">
           {appointment.serviceNameSnapshot}
         </h2>
         <button type="button" onClick={onClose} className={btnGhost}>
@@ -198,7 +198,7 @@ export function AppointmentPanel({
         Estado:{' '}
         <strong>{STATUS_LABEL[appointment.status] ?? appointment.status}</strong>
       </p>
-      <p className="font-serif text-xl">
+      <p className="text-lg font-semibold tabular-nums">
         ${appointment.price.toLocaleString('es-AR')}
       </p>
       {canWrite ? (

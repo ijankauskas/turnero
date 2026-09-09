@@ -165,9 +165,9 @@ export function NewAppointmentForm({
     <div className="fixed inset-0 z-40 grid place-items-center bg-ink/35 p-4 backdrop-blur-[2px]">
       <form
         onSubmit={onSubmit}
-        className="grid max-h-[90vh] w-full max-w-[460px] gap-3 overflow-auto rounded-3xl border border-line bg-paper p-6 shadow-soft"
+        className="grid max-h-[90vh] w-full max-w-[460px] gap-3 overflow-auto rounded-xl border border-line bg-paper p-6 shadow-soft"
       >
-        <h2 className="m-0 font-serif text-3xl">Nuevo turno</h2>
+        <h2 className="m-0 text-xl font-semibold">Nuevo turno</h2>
         <label className={labelClass}>
           Sucursal
           <select
@@ -245,7 +245,7 @@ export function NewAppointmentForm({
           {newClient ? 'Usar cliente existente' : 'Nuevo cliente'}
         </button>
         {newClient ? (
-          <div className="grid gap-2 rounded-2xl bg-cream p-3">
+          <div className="grid gap-2 rounded-lg bg-canvas p-3">
             <input
               placeholder="Nombre"
               value={newFirstName}
@@ -331,10 +331,10 @@ export function NewAppointmentForm({
                     type="button"
                     onClick={() => setTime(clock)}
                     className={cn(
-                      'rounded-full px-3 py-1 text-sm',
+                      'rounded-md px-3 py-1 text-sm',
                       clock === time
-                        ? 'bg-ink text-white'
-                        : 'bg-cream text-ink',
+                        ? 'bg-accent text-white'
+                        : 'bg-canvas text-ink',
                     )}
                   >
                     {clock}

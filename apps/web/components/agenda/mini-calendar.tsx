@@ -34,7 +34,7 @@ export function MiniCalendar({
         >
           ‹
         </button>
-        <strong className="font-serif text-base capitalize">{monthName}</strong>
+        <strong className="text-sm font-semibold capitalize">{monthName}</strong>
         <button
           type="button"
           onClick={() => onSelect(nextMonthStart(date))}
@@ -60,15 +60,15 @@ export function MiniCalendar({
               onClick={() => onSelect(cell.date)}
               className={cn(
                 'rounded-lg py-1.5',
-                selected && 'bg-ink text-white',
-                !selected && cell.inMonth && 'text-ink hover:bg-cream',
+                selected && 'bg-accent text-white',
+                !selected && cell.inMonth && 'text-ink hover:bg-canvas',
                 !selected && !cell.inMonth && 'text-muted/50',
                 has && !selected && 'font-semibold',
               )}
             >
               {Number(cell.date.slice(8, 10))}
               {has && !selected ? (
-                <div className="mx-auto mt-0.5 size-1 rounded-full bg-gold" />
+                <div className="mx-auto mt-0.5 size-1 rounded-full bg-accent" />
               ) : null}
             </button>
           );

@@ -38,10 +38,10 @@ export default function ConfigPage() {
               href={item.href}
               className={cn(
                 cardClass,
-                'block p-5 transition hover:-translate-y-0.5 hover:border-ink/20',
+                'block p-5 transition hover:border-accent/40',
               )}
             >
-              <h2 className="mt-0 mb-1 font-serif text-2xl">{item.title}</h2>
+              <h2 className="mt-0 mb-1 text-base font-semibold">{item.title}</h2>
               <p className="m-0 text-sm text-muted">{item.note}</p>
             </a>
           ))}

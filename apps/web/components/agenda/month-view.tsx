@@ -46,7 +46,7 @@ export function MonthView({
 
   return (
     <div className={cn(cardClass, 'p-4')}>
-      <h2 className="mt-0 mb-4 font-serif text-2xl capitalize">{title}</h2>
+      <h2 className="mt-0 mb-4 text-lg font-semibold capitalize">{title}</h2>
       <div className="grid grid-cols-7 gap-2">
         {WEEKDAYS.map((day) => (
           <div key={day} className="px-1 text-xs text-muted">
@@ -61,11 +61,11 @@ export function MonthView({
               type="button"
               onClick={() => onOpenDay(cell.date)}
               className={cn(
-                'min-h-[88px] rounded-xl border p-2 text-left transition hover:border-ink/30',
+                'min-h-[88px] rounded-lg border p-2 text-left transition hover:border-accent/40',
                 cell.date === date
-                  ? 'border-ink bg-cream'
+                  ? 'border-accent bg-accent/10'
                   : 'border-line',
-                cell.inMonth ? 'bg-paper text-ink' : 'bg-cream/50 text-muted',
+                cell.inMonth ? 'bg-paper text-ink' : 'bg-canvas text-muted',
               )}
             >
               <div className="font-semibold">

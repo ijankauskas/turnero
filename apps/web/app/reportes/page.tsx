@@ -183,7 +183,7 @@ export default function ReportesPage() {
                 </tr>
               ) : null}
               {items.map((row) => (
-                <tr key={row.professionalId} className="hover:bg-cream/60">
+                <tr key={row.professionalId} className="hover:bg-canvas">
                   <td className={tdClass}>{row.name}</td>
                   <td className={cn(tdClass, 'text-center')}>{row.turnos}</td>
                   <td className={cn(tdClass, 'text-right')}>

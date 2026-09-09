@@ -134,7 +134,7 @@ export default function ClientesPage() {
             </thead>
             <tbody>
               {rows.map((row) => (
-                <tr key={row.id} className="hover:bg-cream/60">
+                <tr key={row.id} className="hover:bg-canvas">
                   <td className={tdClass}>
                     <a
                       href={`/clientes/${row.id}`}
@@ -159,7 +159,7 @@ export default function ClientesPage() {
           onSubmit={onSubmit}
           className={cn(cardClass, 'mt-8 grid max-w-md gap-3 p-5')}
         >
-          <h2 className="m-0 font-serif text-2xl">Alta</h2>
+          <h2 className="m-0 text-lg font-semibold">Alta</h2>
           <input
             placeholder="Nombre"
             value={firstName}
