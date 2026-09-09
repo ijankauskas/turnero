@@ -4,6 +4,18 @@ import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
 import { apiJson } from '../../lib/session';
 import type { MeResponse } from '../../lib/types';
+import {
+  Alert,
+  btnGhost,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  Page,
+  PageTitle,
+  tdClass,
+  thClass,
+} from '../../components/ui';
 
 type Service = {
   id: string;
@@ -60,78 +72,94 @@ export default function PrestacionesPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1>Prestaciones</h1>
-        {error ? <p role="alert">{error}</p> : null}
-        <table style={{ width: '100%', background: '#fff' }}>
-          <thead>
-            <tr>
-              <th align="left">Nombre</th>
-              <th>Minutos</th>
-              <th>Precio base</th>
-              <th>Estado</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  {isAdmin ? (
-                    <input
-                      defaultValue={row.name}
-                      onBlur={(e) => {
-                        if (e.target.value !== row.name) {
-                          void patch(row.id, { name: e.target.value });
-                        }
-                      }}
-                    />
-                  ) : (
-                    row.name
-                  )}
-                </td>
-                <td align="center">{row.durationMinutes}</td>
-                <td align="right">${row.basePrice.toLocaleString('es-AR')}</td>
-                <td align="center">
-                  {isAdmin ? (
-                    <button
-                      type="button"
-                      onClick={() => void patch(row.id, { active: !row.active })}
-                    >
-                      {row.active ? 'Desactivar' : 'Activar'}
-                    </button>
-                  ) : row.active ? (
-                    'Activa'
-                  ) : (
-                    'Inactiva'
-                  )}
-                </td>
+      <Page>
+        <PageTitle kicker="Catálogo">Prestaciones</PageTitle>
+        {error ? <Alert>{error}</Alert> : null}
+        <div className={cn(cardClass, 'overflow-hidden')}>
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className={thClass}>Nombre</th>
+                <th className={cn(thClass, 'text-center')}>Minutos</th>
+                <th className={cn(thClass, 'text-right')}>Precio base</th>
+                <th className={cn(thClass, 'text-center')}>Estado</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-cream/60">
+                  <td className={tdClass}>
+                    {isAdmin ? (
+                      <input
+                        defaultValue={row.name}
+                        onBlur={(e) => {
+                          if (e.target.value !== row.name) {
+                            void patch(row.id, { name: e.target.value });
+                          }
+                        }}
+                        className={cn(inputClass, 'mt-0')}
+                      />
+                    ) : (
+                      row.name
+                    )}
+                  </td>
+                  <td className={cn(tdClass, 'text-center')}>
+                    {row.durationMinutes}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    ${row.basePrice.toLocaleString('es-AR')}
+                  </td>
+                  <td className={cn(tdClass, 'text-center')}>
+                    {isAdmin ? (
+                      <button
+                        type="button"
+                        className={btnGhost}
+                        onClick={() => void patch(row.id, { active: !row.active })}
+                      >
+                        {row.active ? 'Desactivar' : 'Activar'}
+                      </button>
+                    ) : row.active ? (
+                      'Activa'
+                    ) : (
+                      'Inactiva'
+                    )}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
         {isAdmin ? (
-          <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 320, marginTop: 16 }}>
-            <h2>Nueva prestación</h2>
+          <form
+            onSubmit={onSubmit}
+            className={cn(cardClass, 'mt-8 grid max-w-sm gap-3 p-5')}
+          >
+            <h2 className="m-0 font-serif text-2xl">Nueva prestación</h2>
             <input
               placeholder="Nombre"
               value={name}
               onChange={(e) => setName(e.target.value)}
               required
+              className={inputClass}
             />
             <input
               type="number"
               value={durationMinutes}
               onChange={(e) => setDurationMinutes(Number(e.target.value))}
+              className={inputClass}
             />
             <input
               type="number"
               value={basePrice}
               onChange={(e) => setBasePrice(Number(e.target.value))}
+              className={inputClass}
             />
-            <button type="submit">Agregar</button>
+            <button type="submit" className={btnPrimary}>
+              Agregar
+            </button>
           </form>
         ) : null}
-      </section>
+      </Page>
     </AppShell>
   );
 }

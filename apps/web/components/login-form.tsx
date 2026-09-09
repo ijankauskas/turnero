@@ -1,8 +1,16 @@
 'use client';
 
-import { FormEvent, useMemo, useState, type CSSProperties } from 'react';
+import { FormEvent, useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiBase, writeSession } from '../lib/session';
+import {
+  Alert,
+  btnGhost,
+  btnPrimary,
+  cn,
+  inputClass,
+  labelClass,
+} from './ui';
 
 type Branding = {
   name: string;
@@ -29,7 +37,7 @@ export function LoginForm({
   const [companies, setCompanies] = useState<CompanyOption[]>([]);
   const [pending, setPending] = useState(false);
 
-  const accent = branding?.primaryColor ?? '#1a1a1a';
+  const accent = branding?.primaryColor ?? '#2c241c';
   const title = branding?.name ?? 'Turnero';
 
   const subtitle = useMemo(() => {
@@ -90,52 +98,34 @@ export function LoginForm({
 
   return (
     <main
-      style={{
-        minHeight: '100vh',
-        display: 'grid',
-        placeItems: 'center',
-        padding: '2rem 1rem',
-        background: branding?.secondaryColor ?? '#f6f4f1',
-      }}
+      className="grid min-h-screen place-items-center px-4 py-10"
+      style={{ background: branding?.secondaryColor ?? '#f6f4f1' }}
     >
       <form
         onSubmit={onSubmit}
-        style={{
-          width: '100%',
-          maxWidth: 420,
-          background: '#fff',
-          borderRadius: 16,
-          padding: '2rem',
-          boxShadow: '0 16px 40px rgba(0,0,0,0.08)',
-        }}
+        className="w-full max-w-[440px] rounded-3xl border border-line/80 bg-paper p-8 shadow-soft"
       >
         <p
-          style={{
-            margin: 0,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-            fontSize: 12,
-            color: accent,
-            display: 'flex',
-            alignItems: 'center',
-            gap: 8,
-          }}
+          className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.2em]"
+          style={{ color: accent }}
         >
           {branding?.logoUrl ? (
             <img
               src={branding.logoUrl}
               alt=""
-              style={{ height: 28, objectFit: 'contain' }}
+              className="h-7 object-contain"
             />
           ) : null}
           {title}
         </p>
-        <h1 style={{ margin: '0.4rem 0 0.3rem', fontSize: 28 }}>{subtitle}</h1>
-        <p style={{ color: '#555', marginTop: 0 }}>
+        <h1 className="mt-2 font-serif text-4xl font-medium tracking-tight">
+          {subtitle}
+        </h1>
+        <p className="mt-2 mb-6 text-sm text-muted">
           Email y contraseña. El tenant sale del login, no de un header.
         </p>
 
-        <label style={labelStyle}>
+        <label className={labelClass}>
           Email
           <input
             type="email"
@@ -143,10 +133,10 @@ export function LoginForm({
             required
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            style={inputStyle}
+            className={inputClass}
           />
         </label>
-        <label style={labelStyle}>
+        <label className={cn(labelClass, 'mt-3')}>
           Contraseña
           <input
             type="password"
@@ -154,33 +144,34 @@ export function LoginForm({
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            style={inputStyle}
+            className={inputClass}
           />
         </label>
         {!initialSlug ? (
-          <label style={labelStyle}>
+          <label className={cn(labelClass, 'mt-3')}>
             Empresa (slug, opcional)
             <input
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
               placeholder="studio-elegance"
-              style={inputStyle}
+              className={inputClass}
             />
           </label>
         ) : null}
 
         {companies.length > 0 ? (
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div className="mt-4 mb-2 flex flex-wrap gap-2">
             {companies.map((company) => (
               <button
                 key={company.slug}
                 type="button"
                 onClick={() => setSlug(company.slug)}
-                style={{
-                  ...buttonStyle,
-                  background: slug === company.slug ? accent : '#eee',
-                  color: slug === company.slug ? '#fff' : '#111',
-                }}
+                className={cn(
+                  'rounded-full px-3 py-1.5 text-sm',
+                  slug === company.slug
+                    ? 'bg-ink text-white'
+                    : 'bg-cream text-ink',
+                )}
               >
                 {company.name}
               </button>
@@ -189,46 +180,27 @@ export function LoginForm({
         ) : null}
 
         {error ? (
-          <p role="alert" style={{ color: '#9b1c1c', fontSize: 14 }}>
-            {error}
-          </p>
+          <div className="mt-4">
+            <Alert>{error}</Alert>
+          </div>
         ) : null}
 
         <button
           type="submit"
           disabled={pending}
-          style={{ ...buttonStyle, background: accent, width: '100%' }}
+          className={cn(btnPrimary, 'mt-6 w-full')}
+          style={{ background: accent }}
         >
           {pending ? 'Ingresando…' : 'Ingresar'}
         </button>
+        {!branding ? (
+          <p className="mt-4 text-center text-sm text-muted">
+            <a href="/e/studio-elegance/login" className={btnGhost}>
+              Studio Élégance
+            </a>
+          </p>
+        ) : null}
       </form>
     </main>
   );
 }
-
-const labelStyle: CSSProperties = {
-  display: 'block',
-  fontSize: 13,
-  marginBottom: 12,
-  color: '#333',
-};
-
-const inputStyle: CSSProperties = {
-  display: 'block',
-  width: '100%',
-  marginTop: 6,
-  padding: '10px 12px',
-  borderRadius: 8,
-  border: '1px solid #ddd',
-  fontSize: 16,
-  boxSizing: 'border-box',
-};
-
-const buttonStyle: CSSProperties = {
-  border: 0,
-  borderRadius: 8,
-  padding: '10px 14px',
-  color: '#fff',
-  fontSize: 15,
-  cursor: 'pointer',
-};

@@ -29,6 +29,16 @@ import {
 } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
 import type { MeResponse } from '../../lib/types';
+import {
+  Alert,
+  btnGhost,
+  btnPrimary,
+  btnSoft,
+  cardClass,
+  cn,
+  inputClass,
+  textareaClass,
+} from '../../components/ui';
 
 export default function AgendaPage() {
   const [me, setMe] = useState<MeResponse | null>(null);
@@ -181,7 +191,7 @@ export default function AgendaPage() {
   if (!me || !date) {
     return (
       <AppShell>
-        <p style={{ padding: '1.25rem' }}>Cargando agenda…</p>
+        <p className="px-8 py-10 text-sm text-muted">Cargando agenda…</p>
       </AppShell>
     );
   }
@@ -190,87 +200,115 @@ export default function AgendaPage() {
 
   return (
     <AppShell>
-      <section
-        className="agenda-layout"
-        style={{
-          padding: '1rem 1.25rem',
-          display: 'grid',
-          gap: 16,
-          alignItems: 'start',
-        }}
-      >
-        <aside style={{ display: 'grid', gap: 16 }}>
-          <MiniCalendar
-            date={date}
-            timeZone={timezone}
-            marked={markedDays}
-            onSelect={(iso) => {
-              setDate(iso);
-              setView('day');
-            }}
-          />
-          {isStaff ? (
-            <fieldset
-              style={{
-                border: '1px solid #eee',
-                borderRadius: 12,
-                padding: 12,
+      <section className="agenda-layout mx-auto grid w-full max-w-[1600px] items-start gap-5 px-5 py-5 md:px-8">
+        <aside className="grid gap-4">
+          <div className={cn(cardClass, 'p-4')}>
+            <MiniCalendar
+              date={date}
+              timeZone={timezone}
+              marked={markedDays}
+              onSelect={(iso) => {
+                setDate(iso);
+                setView('day');
               }}
-            >
-              <legend>Colaboradores</legend>
-              {professionals.map((pro) => (
-                <label key={pro.id} style={{ display: 'block', fontSize: 13 }}>
-                  <input
-                    type="checkbox"
-                    checked={selectedPros.has(pro.id)}
-                    onChange={(e) => {
-                      const next = new Set(selectedPros);
-                      if (e.target.checked) next.add(pro.id);
-                      else next.delete(pro.id);
-                      setSelectedPros(next);
-                    }}
-                  />{' '}
-                  <span style={{ color: pro.color }}>{pro.displayName}</span>
-                </label>
-              ))}
+            />
+          </div>
+          {isStaff ? (
+            <fieldset className={cn(cardClass, 'p-4')}>
+              <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+                Colaboradores
+              </legend>
+              <div className="grid gap-2">
+                {professionals.map((pro) => (
+                  <label
+                    key={pro.id}
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedPros.has(pro.id)}
+                      onChange={(e) => {
+                        const next = new Set(selectedPros);
+                        if (e.target.checked) next.add(pro.id);
+                        else next.delete(pro.id);
+                        setSelectedPros(next);
+                      }}
+                      className="size-4 rounded border-line"
+                    />
+                    <span
+                      className="h-2.5 w-2.5 rounded-full"
+                      style={{ background: pro.color }}
+                    />
+                    <span>{pro.displayName}</span>
+                  </label>
+                ))}
+              </div>
             </fieldset>
           ) : null}
           {isStaff && daily ? (
-            <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ margin: '0 0 8px' }}>El día</h3>
-              {live?.inProgress[0] ? (
-                <p>
-                  En curso: {live.inProgress[0].serviceNameSnapshot} ·{' '}
-                  {live.inProgress[0].client.firstName}
-                </p>
-              ) : live?.next ? (
-                <p>
-                  Próximo: {formatClock(live.next.startAt, timezone)} ·{' '}
-                  {live.next.serviceNameSnapshot}
-                </p>
-              ) : (
-                <p>Sin turnos en curso</p>
-              )}
-              <p>{daily.count} turnos</p>
-              <p>Facturado ${daily.facturado.toLocaleString('es-AR')}</p>
-              <p>
-                Ticket medio $
-                {Math.round(daily.averageTicket).toLocaleString('es-AR')}
+            <div className={cn(cardClass, 'p-4')}>
+              <h3 className="mt-0 mb-3 font-serif text-xl">El día</h3>
+              <p className="text-sm text-muted">
+                {live?.inProgress[0] ? (
+                  <>
+                    En curso: {live.inProgress[0].serviceNameSnapshot} ·{' '}
+                    {live.inProgress[0].client.firstName}
+                  </>
+                ) : live?.next ? (
+                  <>
+                    Próximo: {formatClock(live.next.startAt, timezone)} ·{' '}
+                    {live.next.serviceNameSnapshot}
+                  </>
+                ) : (
+                  'Sin turnos en curso'
+                )}
               </p>
-              <p>Ocupación {daily.occupancyPercent}%</p>
+              <dl className="mt-3 grid grid-cols-2 gap-3 text-sm">
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wider text-muted">
+                    Turnos
+                  </dt>
+                  <dd className="font-serif text-2xl">{daily.count}</dd>
+                </div>
+                <div>
+                  <dt className="text-[11px] uppercase tracking-wider text-muted">
+                    Ocupación
+                  </dt>
+                  <dd className="font-serif text-2xl">
+                    {daily.occupancyPercent}%
+                  </dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-[11px] uppercase tracking-wider text-muted">
+                    Facturado
+                  </dt>
+                  <dd className="font-medium">
+                    ${daily.facturado.toLocaleString('es-AR')}
+                  </dd>
+                </div>
+                <div className="col-span-2">
+                  <dt className="text-[11px] uppercase tracking-wider text-muted">
+                    Ticket medio
+                  </dt>
+                  <dd>
+                    ${Math.round(daily.averageTicket).toLocaleString('es-AR')}
+                  </dd>
+                </div>
+              </dl>
             </div>
           ) : null}
           {isStaff ? (
-            <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
-              <h3 style={{ margin: '0 0 8px' }}>Notas del día</h3>
+            <div className={cn(cardClass, 'p-4')}>
+              <h3 className="mt-0 mb-3 font-serif text-xl">Notas del día</h3>
               <textarea
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={4}
-                style={{ width: '100%' }}
+                className={textareaClass}
               />
               <button
                 type="button"
+                className={cn(btnGhost, 'mt-3')}
                 onClick={() =>
                   void saveNote().catch((err: Error) => setError(err.message))
                 }
@@ -282,18 +320,13 @@ export default function AgendaPage() {
         </aside>
 
         <div>
-          <header
-            style={{
-              display: 'flex',
-              gap: 8,
-              alignItems: 'center',
-              flexWrap: 'wrap',
-              marginBottom: 12,
-            }}
-          >
-            <h1 style={{ margin: 0, textTransform: 'capitalize' }}>{title}</h1>
+          <header className="mb-4 flex flex-wrap items-center gap-2">
+            <h1 className="mr-2 font-serif text-3xl font-medium capitalize tracking-tight">
+              {title}
+            </h1>
             <button
               type="button"
+              className={btnSoft}
               onClick={() =>
                 setDate(
                   addDays(
@@ -307,12 +340,14 @@ export default function AgendaPage() {
             </button>
             <button
               type="button"
+              className={btnGhost}
               onClick={() => setDate(todayInZone(timezone))}
             >
               Hoy
             </button>
             <button
               type="button"
+              className={btnSoft}
               onClick={() =>
                 setDate(
                   addDays(
@@ -324,20 +359,26 @@ export default function AgendaPage() {
             >
               ›
             </button>
-            {(['day', 'week', 'month'] as AgendaView[]).map((item) => (
-              <button
-                key={item}
-                type="button"
-                onClick={() => setView(item)}
-                style={{ fontWeight: view === item ? 700 : 400 }}
-              >
-                {item === 'day' ? 'Día' : item === 'week' ? 'Semana' : 'Mes'}
-              </button>
-            ))}
+            <div className="flex rounded-full border border-line bg-white p-0.5">
+              {(['day', 'week', 'month'] as AgendaView[]).map((item) => (
+                <button
+                  key={item}
+                  type="button"
+                  onClick={() => setView(item)}
+                  className={cn(
+                    'rounded-full px-3 py-1.5 text-sm',
+                    view === item ? 'bg-ink text-white' : 'text-muted',
+                  )}
+                >
+                  {item === 'day' ? 'Día' : item === 'week' ? 'Semana' : 'Mes'}
+                </button>
+              ))}
+            </div>
             {isAdmin ? (
               <select
                 value={branchId}
                 onChange={(e) => setBranchId(e.target.value)}
+                className={cn(inputClass, 'mt-0 w-auto min-w-[180px] py-2')}
               >
                 <option value="">Todas las sucursales</option>
                 {branches.map((row) => (
@@ -348,14 +389,20 @@ export default function AgendaPage() {
               </select>
             ) : null}
             {canWrite ? (
-              <button type="button" onClick={() => openCreate({})}>
+              <button
+                type="button"
+                className={cn(btnPrimary, 'ml-auto')}
+                onClick={() => openCreate({})}
+              >
                 + Nuevo turno
               </button>
             ) : null}
           </header>
-          {error ? <p role="alert">{error}</p> : null}
+          {error ? <Alert>{error}</Alert> : null}
           {view === 'day' && visiblePros.length === 0 ? (
-            <p>No hay profesionales activos para mostrar.</p>
+            <p className="mb-3 text-sm text-muted">
+              No hay profesionales activos para mostrar.
+            </p>
           ) : null}
           {view === 'day' ? (
             <DayGrid

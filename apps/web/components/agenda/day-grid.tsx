@@ -7,6 +7,7 @@ import {
 } from '../../lib/datetime';
 import type { Appointment, Professional } from './types';
 import { VISIBLE_STATUSES } from './types';
+import { apptSurface, cardClass, cn } from '../ui';
 
 const START_HOUR = 9;
 const END_HOUR = 19;
@@ -47,39 +48,28 @@ export function DayGrid({
 
   return (
     <div
+      className={cn(cardClass, 'overflow-hidden')}
       style={{
         display: 'grid',
         gridTemplateColumns: `64px repeat(${Math.max(columns.length, 1)}, minmax(150px, 1fr))`,
-        background: '#fff',
-        borderRadius: 12,
-        overflow: 'hidden',
       }}
     >
       <div />
       {columns.map((pro) => (
         <div
           key={pro.id}
-          style={{
-            padding: 8,
-            textAlign: 'center',
-            fontWeight: 600,
-            borderLeft: '1px solid #eee',
-            color: pro.color,
-          }}
+          className="border-l border-line px-2 py-3 text-center text-sm font-semibold"
+          style={{ color: pro.color }}
         >
           {pro.displayName}
         </div>
       ))}
-      <div style={{ position: 'relative', height }}>
+      <div className="relative" style={{ height }}>
         {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => (
           <div
             key={i}
-            style={{
-              position: 'absolute',
-              top: i * 60 * PX_PER_MINUTE,
-              fontSize: 11,
-              color: '#888',
-            }}
+            className="absolute text-[11px] text-muted"
+            style={{ top: i * 60 * PX_PER_MINUTE }}
           >
             {String(START_HOUR + i).padStart(2, '0')}:00
           </div>
@@ -92,12 +82,11 @@ export function DayGrid({
             onClick={(event) =>
               pro.id !== 'empty' ? onColumnClick(event, pro.id) : undefined
             }
+            className="relative border-l border-line/80"
             style={{
-              position: 'relative',
               height,
-              borderLeft: '1px solid #f0f0f0',
               backgroundImage:
-                'repeating-linear-gradient(to bottom, transparent 0, transparent 14px, #f7f7f7 15px)',
+                'repeating-linear-gradient(to bottom, transparent 0, transparent 14px, #f3eee8 15px)',
               cursor: canCreate ? 'pointer' : 'default',
             }}
           >
@@ -118,24 +107,19 @@ export function DayGrid({
                       event.stopPropagation();
                       onSelect(item);
                     }}
+                    className="absolute right-1.5 left-1.5 overflow-hidden rounded-xl px-2 py-1.5 text-xs shadow-sm"
                     style={{
-                      position: 'absolute',
-                      left: 6,
-                      right: 6,
                       top: Math.max(minutes, 0) * PX_PER_MINUTE,
                       height: item.durationMinutes * PX_PER_MINUTE,
-                      background: pro.color,
-                      color: '#fff',
-                      borderRadius: 8,
-                      padding: 6,
-                      fontSize: 12,
-                      overflow: 'hidden',
-                      cursor: 'pointer',
                       opacity: item.status === 'NO_ASISTIO' ? 0.55 : 1,
+                      cursor: 'pointer',
+                      ...apptSurface(pro.color),
                     }}
                   >
-                    <strong>{item.serviceNameSnapshot}</strong>
-                    <div>
+                    <strong className="block leading-tight">
+                      {item.serviceNameSnapshot}
+                    </strong>
+                    <div className="truncate opacity-80">
                       {item.client.firstName} {item.client.lastName}
                     </div>
                   </article>

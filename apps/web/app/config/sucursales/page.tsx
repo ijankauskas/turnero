@@ -3,6 +3,16 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { apiJson } from '../../../lib/session';
+import {
+  Alert,
+  btnDanger,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  Page,
+  PageTitle,
+} from '../../../components/ui';
 
 type Branch = {
   id: string;
@@ -62,12 +72,20 @@ export default function ConfigSucursalesPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1>Sucursales</h1>
-        {error ? <p role="alert">{error}</p> : null}
-        <ul>
+      <Page>
+        <p className="mb-4">
+          <a
+            href="/config"
+            className="text-sm text-muted underline decoration-line underline-offset-4"
+          >
+            ← Configuración
+          </a>
+        </p>
+        <PageTitle kicker="Locales">Sucursales</PageTitle>
+        {error ? <Alert>{error}</Alert> : null}
+        <ul className="m-0 mb-8 grid list-none gap-3 p-0">
           {rows.map((row) => (
-            <li key={row.id} style={{ marginBottom: 12 }}>
+            <li key={row.id} className={cn(cardClass, 'flex flex-wrap items-center gap-2 p-4')}>
               <input
                 defaultValue={row.name}
                 onBlur={(e) => {
@@ -75,7 +93,8 @@ export default function ConfigSucursalesPage() {
                     void patch(row.id, { name: e.target.value });
                   }
                 }}
-              />{' '}
+                className={cn(inputClass, 'mt-0 max-w-[180px]')}
+              />
               <input
                 placeholder="Dirección"
                 defaultValue={row.address ?? ''}
@@ -84,7 +103,8 @@ export default function ConfigSucursalesPage() {
                     void patch(row.id, { address: e.target.value || null });
                   }
                 }}
-              />{' '}
+                className={cn(inputClass, 'mt-0 min-w-[180px] flex-1')}
+              />
               <input
                 placeholder="Teléfono"
                 defaultValue={row.phone ?? ''}
@@ -93,12 +113,14 @@ export default function ConfigSucursalesPage() {
                     void patch(row.id, { phone: e.target.value || null });
                   }
                 }}
+                className={cn(inputClass, 'mt-0 max-w-[160px]')}
               />
               {row.active === false ? (
-                ' (inactiva)'
+                <span className="text-sm text-muted">(inactiva)</span>
               ) : (
                 <button
                   type="button"
+                  className={btnDanger}
                   onClick={() => void patch(row.id, { active: false })}
                 >
                   Desactivar
@@ -107,28 +129,35 @@ export default function ConfigSucursalesPage() {
             </li>
           ))}
         </ul>
-        {rows.length === 0 ? <p>No hay sucursales.</p> : null}
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
-          <h2>Nueva sucursal</h2>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted">No hay sucursales.</p>
+        ) : null}
+        <form onSubmit={onSubmit} className={cn(cardClass, 'grid max-w-md gap-3 p-5')}>
+          <h2 className="m-0 font-serif text-2xl">Nueva sucursal</h2>
           <input
             placeholder="Nombre"
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
+            className={inputClass}
           />
           <input
             placeholder="Dirección"
             value={address}
             onChange={(e) => setAddress(e.target.value)}
+            className={inputClass}
           />
           <input
             placeholder="Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
+            className={inputClass}
           />
-          <button type="submit">Agregar</button>
+          <button type="submit" className={btnPrimary}>
+            Agregar
+          </button>
         </form>
-      </section>
+      </Page>
     </AppShell>
   );
 }

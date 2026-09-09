@@ -1,5 +1,17 @@
 import type { ReactNode } from 'react';
+import { Cormorant_Garamond, DM_Sans } from 'next/font/google';
 import './globals.css';
+
+const sans = DM_Sans({
+  subsets: ['latin'],
+  variable: '--font-dm-sans',
+});
+
+const serif = Cormorant_Garamond({
+  subsets: ['latin'],
+  weight: ['500', '600', '700'],
+  variable: '--font-cormorant',
+});
 
 export default function RootLayout({
   children,
@@ -7,16 +19,8 @@ export default function RootLayout({
   children: ReactNode;
 }>) {
   return (
-    <html lang="es-AR">
-      <body
-        style={{
-          margin: 0,
-          fontFamily:
-            'ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif',
-          background: '#f6f4f1',
-          color: '#1a1a1a',
-        }}
-      >
+    <html lang="es-AR" className={`${sans.variable} ${serif.variable}`}>
+      <body className="min-h-screen bg-cream font-sans text-ink antialiased">
         {children}
       </body>
     </html>

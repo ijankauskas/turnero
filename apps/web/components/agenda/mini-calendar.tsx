@@ -1,6 +1,7 @@
 'use client';
 
 import { monthCells, monthStart, nextMonthStart, addDays } from '../../lib/datetime';
+import { btnSoft, cn } from '../ui';
 
 const WEEKDAYS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
@@ -24,43 +25,28 @@ export function MiniCalendar({
 
   return (
     <div>
-      <div
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          marginBottom: 8,
-        }}
-      >
+      <div className="mb-3 flex items-center justify-between">
         <button
           type="button"
           onClick={() => onSelect(addDays(start, -1))}
           aria-label="Mes anterior"
+          className={cn(btnSoft, 'size-8 px-0')}
         >
           ‹
         </button>
-        <strong style={{ fontSize: 13, textTransform: 'capitalize' }}>
-          {monthName}
-        </strong>
+        <strong className="font-serif text-base capitalize">{monthName}</strong>
         <button
           type="button"
           onClick={() => onSelect(nextMonthStart(date))}
           aria-label="Mes siguiente"
+          className={cn(btnSoft, 'size-8 px-0')}
         >
           ›
         </button>
       </div>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: 2,
-          fontSize: 11,
-          textAlign: 'center',
-        }}
-      >
+      <div className="grid grid-cols-7 gap-0.5 text-center text-[11px]">
         {WEEKDAYS.map((day, i) => (
-          <div key={`${day}-${i}`} style={{ color: '#888' }}>
+          <div key={`${day}-${i}`} className="py-1 text-muted">
             {day}
           </div>
         ))}
@@ -72,31 +58,17 @@ export function MiniCalendar({
               key={cell.date}
               type="button"
               onClick={() => onSelect(cell.date)}
-              style={{
-                border: 0,
-                borderRadius: 6,
-                padding: '6px 0',
-                background: selected ? 'var(--color-primary, #1a1a1a)' : 'transparent',
-                color: selected
-                  ? '#fff'
-                  : cell.inMonth
-                    ? '#1a1a1a'
-                    : '#bbb',
-                fontWeight: has ? 700 : 400,
-                cursor: 'pointer',
-              }}
+              className={cn(
+                'rounded-lg py-1.5',
+                selected && 'bg-ink text-white',
+                !selected && cell.inMonth && 'text-ink hover:bg-cream',
+                !selected && !cell.inMonth && 'text-muted/50',
+                has && !selected && 'font-semibold',
+              )}
             >
               {Number(cell.date.slice(8, 10))}
               {has && !selected ? (
-                <div
-                  style={{
-                    width: 4,
-                    height: 4,
-                    borderRadius: 4,
-                    background: 'var(--color-primary, #1a1a1a)',
-                    margin: '2px auto 0',
-                  }}
-                />
+                <div className="mx-auto mt-0.5 size-1 rounded-full bg-gold" />
               ) : null}
             </button>
           );

@@ -3,6 +3,20 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { apiJson } from '../../../lib/session';
+import {
+  Alert,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  labelClass,
+  Page,
+  PageTitle,
+  tdClass,
+  thClass,
+} from '../../../components/ui';
 
 type Professional = {
   id: string;
@@ -175,253 +189,297 @@ export default function ConfigProfesionalesPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1>Profesionales</h1>
-        {error ? <p role="alert">{error}</p> : null}
-        <ul>
-          {rows.map((row) => (
-            <li key={row.id}>
-              <button type="button" onClick={() => void openFicha(row.id)}>
-                {row.displayName}
-                {row.active === false ? ' (inactivo)' : ''}
-              </button>{' '}
-              · {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
-            </li>
-          ))}
-        </ul>
-        {selected && current ? (
-          <form onSubmit={saveFicha}>
-            <h2>Ficha de {current.displayName}</h2>
-            <label>
-              Nombre en agenda
-              <input
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-              />
-            </label>
-            <label>
-              Color
-              <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-              />
-            </label>
-            <fieldset>
-              <legend>Sucursales</legend>
-              {branches.map((row) => (
-                <label key={row.id} style={{ display: 'block' }}>
-                  <input
-                    type="checkbox"
-                    checked={branchIds.includes(row.id)}
-                    onChange={(e) => {
-                      setBranchIds((currentIds) =>
-                        e.target.checked
-                          ? [...currentIds, row.id]
-                          : currentIds.filter((id) => id !== row.id),
-                      );
-                    }}
-                  />{' '}
-                  {row.name}
-                </label>
-              ))}
-            </fieldset>
-            <h3>Precio y comisión</h3>
-            <table style={{ width: '100%', background: '#fff' }}>
-              <thead>
-                <tr>
-                  <th align="left">Servicio</th>
-                  <th>Ofrece</th>
-                  <th>Precio</th>
-                  <th>Tipo</th>
-                  <th>Valor</th>
-                </tr>
-              </thead>
-              <tbody>
-                {catalog.map((service) => {
-                  const offer = offers[service.id];
-                  return (
-                    <tr key={service.id}>
-                      <td>
-                        {service.name} ({service.durationMinutes} min)
-                      </td>
-                      <td align="center">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(offer)}
-                          onChange={(e) =>
-                            toggleOffer(service, e.target.checked)
-                          }
-                        />
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          disabled={!offer}
-                          value={offer?.price ?? service.basePrice}
-                          onChange={(e) =>
-                            setOffers((currentOffers) => ({
-                              ...currentOffers,
-                              [service.id]: {
-                                ...currentOffers[service.id],
-                                price: Number(e.target.value),
-                              },
-                            }))
-                          }
-                        />
-                      </td>
-                      <td>
-                        <select
-                          disabled={!offer}
-                          value={offer?.remunerationType ?? 'PERCENT'}
-                          onChange={(e) =>
-                            setOffers((currentOffers) => ({
-                              ...currentOffers,
-                              [service.id]: {
-                                ...currentOffers[service.id],
-                                remunerationType: e.target.value as
-                                  | 'PERCENT'
-                                  | 'FIXED',
-                              },
-                            }))
-                          }
-                        >
-                          <option value="PERCENT">%</option>
-                          <option value="FIXED">Fijo</option>
-                        </select>
-                      </td>
-                      <td>
-                        <input
-                          type="number"
-                          disabled={!offer}
-                          value={offer?.remunerationValue ?? 40}
-                          onChange={(e) =>
-                            setOffers((currentOffers) => ({
-                              ...currentOffers,
-                              [service.id]: {
-                                ...currentOffers[service.id],
-                                remunerationValue: Number(e.target.value),
-                              },
-                            }))
-                          }
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-            <h3>Horario semanal</h3>
-            <p style={{ fontSize: 13, color: '#666' }}>
-              Un profesional no puede tener dos sucursales el mismo día a la
-              misma hora.
-            </p>
-            {schedule.map((block, index) => (
-              <div
-                key={`${block.weekday}-${index}`}
-                style={{
-                  display: 'flex',
-                  gap: 8,
-                  flexWrap: 'wrap',
-                  alignItems: 'center',
-                  marginBottom: 8,
-                }}
-              >
-                <select
-                  value={block.weekday}
-                  onChange={(e) =>
-                    updateBlock(index, { weekday: Number(e.target.value) })
-                  }
-                >
-                  {DAYS.map((day, weekday) => (
-                    <option key={day} value={weekday}>
-                      {day}
-                    </option>
-                  ))}
-                </select>
-                <select
-                  value={block.branchId}
-                  onChange={(e) =>
-                    updateBlock(index, { branchId: e.target.value })
-                  }
-                >
-                  {branches.map((row) => (
-                    <option key={row.id} value={row.id}>
-                      {row.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="time"
-                  value={block.startTime}
-                  onChange={(e) =>
-                    updateBlock(index, { startTime: e.target.value })
-                  }
-                />
-                <input
-                  type="time"
-                  value={block.endTime}
-                  onChange={(e) =>
-                    updateBlock(index, { endTime: e.target.value })
-                  }
-                />
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={block.isOff}
-                    onChange={(e) =>
-                      updateBlock(index, { isOff: e.target.checked })
-                    }
-                  />{' '}
-                  Franco
-                </label>
+      <Page className="max-w-7xl">
+        <p className="mb-4">
+          <a
+            href="/config"
+            className="text-sm text-muted underline decoration-line underline-offset-4"
+          >
+            ← Configuración
+          </a>
+        </p>
+        <PageTitle kicker="Equipo">Profesionales</PageTitle>
+        {error ? <Alert>{error}</Alert> : null}
+        <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <ul className="m-0 grid list-none content-start gap-2 p-0">
+            {rows.map((row) => (
+              <li key={row.id}>
                 <button
                   type="button"
-                  onClick={() =>
-                    setSchedule((currentBlocks) =>
-                      currentBlocks.filter((_, i) => i !== index),
-                    )
-                  }
+                  onClick={() => void openFicha(row.id)}
+                  className={cn(
+                    cardClass,
+                    'w-full p-4 text-left transition hover:border-ink/20',
+                    selected === row.id && 'border-ink/40 bg-cream',
+                  )}
                 >
-                  Quitar
+                  <span
+                    className="mb-1 inline-block size-2.5 rounded-full"
+                    style={{ background: row.color }}
+                  />
+                  <strong className="ml-2">{row.displayName}</strong>
+                  {row.active === false ? (
+                    <span className="text-muted"> (inactivo)</span>
+                  ) : null}
+                  <div className="mt-1 text-xs text-muted">
+                    {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
+                  </div>
                 </button>
-              </div>
+              </li>
             ))}
-            <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-              <button type="button" onClick={addBlock}>
-                Agregar bloque
-              </button>
-              <button type="submit" disabled={saving}>
-                Guardar ficha
-              </button>
-              {current.active !== false ? (
-                <button
-                  type="button"
-                  onClick={() =>
-                    void apiJson(`/professionals/${current.id}/deactivate`, {
-                      method: 'POST',
-                    })
-                      .then(() =>
-                        setRows((rows) =>
-                          rows.map((row) =>
-                            row.id === current.id
-                              ? { ...row, active: false }
-                              : row,
-                          ),
-                        ),
-                      )
-                      .catch((err: Error) => setError(err.message))
-                  }
+          </ul>
+          {selected && current ? (
+            <form onSubmit={saveFicha} className={cn(cardClass, 'p-5')}>
+              <h2 className="mt-0 font-serif text-2xl">
+                Ficha de {current.displayName}
+              </h2>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <label className={labelClass}>
+                  Nombre en agenda
+                  <input
+                    value={displayName}
+                    onChange={(e) => setDisplayName(e.target.value)}
+                    className={inputClass}
+                  />
+                </label>
+                <label className={labelClass}>
+                  Color
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="mt-1.5 h-10 w-16 cursor-pointer rounded-lg border border-line bg-white"
+                  />
+                </label>
+              </div>
+              <fieldset className="mt-4 rounded-2xl border border-line p-3">
+                <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
+                  Sucursales
+                </legend>
+                {branches.map((row) => (
+                  <label key={row.id} className="flex items-center gap-2 py-1 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={branchIds.includes(row.id)}
+                      onChange={(e) => {
+                        setBranchIds((currentIds) =>
+                          e.target.checked
+                            ? [...currentIds, row.id]
+                            : currentIds.filter((id) => id !== row.id),
+                        );
+                      }}
+                      className="size-4 rounded border-line"
+                    />
+                    {row.name}
+                  </label>
+                ))}
+              </fieldset>
+              <h3 className="mt-6 font-serif text-xl">Precio y comisión</h3>
+              <div className="overflow-x-auto rounded-2xl border border-line">
+                <table className="w-full">
+                  <thead>
+                    <tr>
+                      <th className={thClass}>Servicio</th>
+                      <th className={cn(thClass, 'text-center')}>Ofrece</th>
+                      <th className={thClass}>Precio</th>
+                      <th className={thClass}>Tipo</th>
+                      <th className={thClass}>Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {catalog.map((service) => {
+                      const offer = offers[service.id];
+                      return (
+                        <tr key={service.id}>
+                          <td className={tdClass}>
+                            {service.name} ({service.durationMinutes} min)
+                          </td>
+                          <td className={cn(tdClass, 'text-center')}>
+                            <input
+                              type="checkbox"
+                              checked={Boolean(offer)}
+                              onChange={(e) =>
+                                toggleOffer(service, e.target.checked)
+                              }
+                              className="size-4 rounded border-line"
+                            />
+                          </td>
+                          <td className={tdClass}>
+                            <input
+                              type="number"
+                              disabled={!offer}
+                              value={offer?.price ?? service.basePrice}
+                              onChange={(e) =>
+                                setOffers((currentOffers) => ({
+                                  ...currentOffers,
+                                  [service.id]: {
+                                    ...currentOffers[service.id],
+                                    price: Number(e.target.value),
+                                  },
+                                }))
+                              }
+                              className={cn(inputClass, 'mt-0 w-24')}
+                            />
+                          </td>
+                          <td className={tdClass}>
+                            <select
+                              disabled={!offer}
+                              value={offer?.remunerationType ?? 'PERCENT'}
+                              onChange={(e) =>
+                                setOffers((currentOffers) => ({
+                                  ...currentOffers,
+                                  [service.id]: {
+                                    ...currentOffers[service.id],
+                                    remunerationType: e.target.value as
+                                      | 'PERCENT'
+                                      | 'FIXED',
+                                  },
+                                }))
+                              }
+                              className={cn(inputClass, 'mt-0 w-24')}
+                            >
+                              <option value="PERCENT">%</option>
+                              <option value="FIXED">Fijo</option>
+                            </select>
+                          </td>
+                          <td className={tdClass}>
+                            <input
+                              type="number"
+                              disabled={!offer}
+                              value={offer?.remunerationValue ?? 40}
+                              onChange={(e) =>
+                                setOffers((currentOffers) => ({
+                                  ...currentOffers,
+                                  [service.id]: {
+                                    ...currentOffers[service.id],
+                                    remunerationValue: Number(e.target.value),
+                                  },
+                                }))
+                              }
+                              className={cn(inputClass, 'mt-0 w-24')}
+                            />
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+              <h3 className="mt-6 font-serif text-xl">Horario semanal</h3>
+              <p className="text-[13px] text-muted">
+                Un profesional no puede tener dos sucursales el mismo día a la
+                misma hora.
+              </p>
+              {schedule.map((block, index) => (
+                <div
+                  key={`${block.weekday}-${index}`}
+                  className="mb-2 flex flex-wrap items-center gap-2"
                 >
-                  Desactivar
+                  <select
+                    value={block.weekday}
+                    onChange={(e) =>
+                      updateBlock(index, { weekday: Number(e.target.value) })
+                    }
+                    className={cn(inputClass, 'mt-0 w-auto')}
+                  >
+                    {DAYS.map((day, weekday) => (
+                      <option key={day} value={weekday}>
+                        {day}
+                      </option>
+                    ))}
+                  </select>
+                  <select
+                    value={block.branchId}
+                    onChange={(e) =>
+                      updateBlock(index, { branchId: e.target.value })
+                    }
+                    className={cn(inputClass, 'mt-0 w-auto')}
+                  >
+                    {branches.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="time"
+                    value={block.startTime}
+                    onChange={(e) =>
+                      updateBlock(index, { startTime: e.target.value })
+                    }
+                    className={cn(inputClass, 'mt-0 w-auto')}
+                  />
+                  <input
+                    type="time"
+                    value={block.endTime}
+                    onChange={(e) =>
+                      updateBlock(index, { endTime: e.target.value })
+                    }
+                    className={cn(inputClass, 'mt-0 w-auto')}
+                  />
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={block.isOff}
+                      onChange={(e) =>
+                        updateBlock(index, { isOff: e.target.checked })
+                      }
+                      className="size-4 rounded border-line"
+                    />
+                    Franco
+                  </label>
+                  <button
+                    type="button"
+                    className={btnGhost}
+                    onClick={() =>
+                      setSchedule((currentBlocks) =>
+                        currentBlocks.filter((_, i) => i !== index),
+                      )
+                    }
+                  >
+                    Quitar
+                  </button>
+                </div>
+              ))}
+              <div className="mt-4 flex flex-wrap gap-2">
+                <button type="button" onClick={addBlock} className={btnGhost}>
+                  Agregar bloque
                 </button>
-              ) : (
-                <span>Inactivo: no entra en el alta de turnos.</span>
-              )}
-            </div>
-          </form>
-        ) : null}
-      </section>
+                <button type="submit" disabled={saving} className={btnPrimary}>
+                  Guardar ficha
+                </button>
+                {current.active !== false ? (
+                  <button
+                    type="button"
+                    className={btnDanger}
+                    onClick={() =>
+                      void apiJson(`/professionals/${current.id}/deactivate`, {
+                        method: 'POST',
+                      })
+                        .then(() =>
+                          setRows((rows) =>
+                            rows.map((row) =>
+                              row.id === current.id
+                                ? { ...row, active: false }
+                                : row,
+                            ),
+                          ),
+                        )
+                        .catch((err: Error) => setError(err.message))
+                    }
+                  >
+                    Desactivar
+                  </button>
+                ) : (
+                  <span className="text-sm text-muted">
+                    Inactivo: no entra en el alta de turnos.
+                  </span>
+                )}
+              </div>
+            </form>
+          ) : null}
+        </div>
+      </Page>
     </AppShell>
   );
 }

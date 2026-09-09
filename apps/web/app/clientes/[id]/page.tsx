@@ -7,6 +7,17 @@ import { formatLongInstant } from '../../../lib/datetime';
 import { STATUS_LABEL } from '../../../lib/labels';
 import { apiJson } from '../../../lib/session';
 import type { MeResponse } from '../../../lib/types';
+import {
+  Alert,
+  btnDanger,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  labelClass,
+  Page,
+  textareaClass,
+} from '../../../components/ui';
 
 type Detail = {
   firstName: string;
@@ -77,78 +88,102 @@ export default function ClienteFichaPage() {
 
   return (
     <AppShell>
-      <section style={{ padding: '1.25rem' }}>
-        {error ? <p role="alert">{error}</p> : null}
+      <Page>
+        <p className="mb-4">
+          <a
+            href="/clientes"
+            className="text-sm text-muted underline decoration-line underline-offset-4"
+          >
+            ← Clientes
+          </a>
+        </p>
+        {error ? <Alert>{error}</Alert> : null}
         {row ? (
-          <>
-            <h1>
-              {row.lastName}, {row.firstName}
-            </h1>
-            <p>Tel: {row.phone}</p>
-            {canWrite ? (
-              <form onSubmit={onSave} style={{ display: 'grid', gap: 8, maxWidth: 420 }}>
-                <label>
-                  Email
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                  />
-                </label>
-                <label>
-                  Notas
-                  <textarea
-                    value={notes}
-                    onChange={(e) => setNotes(e.target.value)}
-                    rows={3}
-                  />
-                </label>
-                <button type="submit">Guardar ficha</button>
-                {saved ? <p>Guardado.</p> : null}
-                {row.active !== false ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      void apiJson(`/clients/${params.id}/deactivate`, {
-                        method: 'POST',
-                      })
-                        .then(() =>
-                          setRow((current) =>
-                            current ? { ...current, active: false } : current,
-                          ),
-                        )
-                        .catch((err: Error) => setError(err.message))
-                    }
-                  >
-                    Desactivar cliente
+          <div className="grid gap-6 lg:grid-cols-[minmax(0,420px)_1fr]">
+            <div className={cn(cardClass, 'p-5')}>
+              <h1 className="mt-0 font-serif text-4xl">
+                {row.lastName}, {row.firstName}
+              </h1>
+              <p className="text-muted">Tel: {row.phone}</p>
+              {canWrite ? (
+                <form onSubmit={onSave} className="mt-4 grid gap-3">
+                  <label className={labelClass}>
+                    Email
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className={inputClass}
+                    />
+                  </label>
+                  <label className={labelClass}>
+                    Notas
+                    <textarea
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      rows={3}
+                      className={textareaClass}
+                    />
+                  </label>
+                  <button type="submit" className={btnPrimary}>
+                    Guardar ficha
                   </button>
-                ) : (
-                  <p>Cliente inactivo: no aparece en el alta de turnos.</p>
-                )}
-              </form>
-            ) : (
-              <>
-                <p>Email: {row.email ?? '—'}</p>
-                <p>{row.notes}</p>
-              </>
-            )}
-            <h2>Historial</h2>
-            {row.appointments.length === 0 ? (
-              <p>Sin turnos.</p>
-            ) : (
-            <ul>
-              {row.appointments.map((item) => (
-                <li key={item.id}>
-                  {formatLongInstant(item.startAt, timezone)} ·{' '}
-                  {item.serviceNameSnapshot} · {item.professional.displayName} ·{' '}
-                  {STATUS_LABEL[item.status] ?? item.status}
-                </li>
-              ))}
-            </ul>
-            )}
-          </>
+                  {saved ? (
+                    <p className="text-sm text-muted">Guardado.</p>
+                  ) : null}
+                  {row.active !== false ? (
+                    <button
+                      type="button"
+                      className={btnDanger}
+                      onClick={() =>
+                        void apiJson(`/clients/${params.id}/deactivate`, {
+                          method: 'POST',
+                        })
+                          .then(() =>
+                            setRow((current) =>
+                              current ? { ...current, active: false } : current,
+                            ),
+                          )
+                          .catch((err: Error) => setError(err.message))
+                      }
+                    >
+                      Desactivar cliente
+                    </button>
+                  ) : (
+                    <p className="text-sm text-muted">
+                      Cliente inactivo: no aparece en el alta de turnos.
+                    </p>
+                  )}
+                </form>
+              ) : (
+                <>
+                  <p>Email: {row.email ?? '—'}</p>
+                  <p>{row.notes}</p>
+                </>
+              )}
+            </div>
+            <div className={cn(cardClass, 'p-5')}>
+              <h2 className="mt-0 font-serif text-2xl">Historial</h2>
+              {row.appointments.length === 0 ? (
+                <p className="text-sm text-muted">Sin turnos.</p>
+              ) : (
+                <ul className="m-0 grid list-none gap-2 p-0">
+                  {row.appointments.map((item) => (
+                    <li
+                      key={item.id}
+                      className="rounded-xl border border-line bg-cream/50 px-3 py-2 text-sm"
+                    >
+                      {formatLongInstant(item.startAt, timezone)} ·{' '}
+                      {item.serviceNameSnapshot} · {item.professional.displayName}{' '}
+                      · {STATUS_LABEL[item.status] ?? item.status}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          </div>
         ) : null}
-      </section>
+      </Page>
     </AppShell>
   );
 }

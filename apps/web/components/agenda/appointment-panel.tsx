@@ -10,6 +10,17 @@ import {
 } from '../../lib/datetime';
 import type { Appointment } from './types';
 import { STATUS_LABEL } from './types';
+import {
+  Alert,
+  btnDanger,
+  btnGhost,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  labelClass,
+  textareaClass,
+} from '../ui';
 
 const NEXT: Record<string, string[]> = {
   RESERVADO: ['CONFIRMADO', 'ATENDIDO', 'NO_ASISTIO'],
@@ -132,119 +143,139 @@ export function AppointmentPanel({
   const clientId = appointment.client.id ?? appointment.clientId;
 
   return (
-    <aside
-      style={{
-        width: 340,
-        background: '#fff',
-        borderRadius: 12,
-        padding: 16,
-        boxShadow: '0 8px 32px rgba(0,0,0,0.08)',
-        alignSelf: 'flex-start',
-      }}
-    >
-      <header
-        style={{
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-        }}
-      >
-        <h2 style={{ margin: 0, fontSize: 18 }}>{appointment.serviceNameSnapshot}</h2>
-        <button type="button" onClick={onClose}>
+    <aside className={cn(cardClass, 'sticky top-20 w-full max-w-[360px] self-start p-5')}>
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <h2 className="m-0 font-serif text-2xl leading-tight">
+          {appointment.serviceNameSnapshot}
+        </h2>
+        <button type="button" onClick={onClose} className={btnGhost}>
           Cerrar
         </button>
       </header>
-      <p style={{ textTransform: 'capitalize' }}>{dateLabel}</p>
-      <p>
+      <p className="capitalize text-muted">{dateLabel}</p>
+      <p className="text-sm">
         {formatClock(appointment.startAt, timeZone)} –{' '}
         {formatClock(appointment.endAt, timeZone)} hs
       </p>
       {canWrite && appointment.status !== 'CANCELADO' ? (
         <form
           onSubmit={saveTime}
-          style={{ display: 'flex', gap: 8, alignItems: 'center' }}
+          className="mt-3 flex flex-wrap items-end gap-2"
         >
-          <label>
+          <label className={labelClass}>
             Hora
             <input
               type="time"
               value={time}
               onChange={(e) => setTime(e.target.value)}
+              className={cn(inputClass, 'w-auto')}
             />
           </label>
-          <button type="submit">Cambiar hora</button>
+          <button type="submit" className={btnGhost}>
+            Cambiar hora
+          </button>
         </form>
       ) : null}
-      <p>
-        {appointment.client.firstName} {appointment.client.lastName}
-        <br />
-        {appointment.client.phone}
+      <div className="mt-4 space-y-1 text-sm">
+        <p className="font-medium">
+          {appointment.client.firstName} {appointment.client.lastName}
+        </p>
+        <p className="text-muted">{appointment.client.phone}</p>
         {clientId ? (
-          <>
-            <br />
-            <a href={`/clientes/${clientId}`}>Ver ficha</a>
-          </>
+          <a
+            href={`/clientes/${clientId}`}
+            className="text-sm underline decoration-line underline-offset-4"
+          >
+            Ver ficha
+          </a>
         ) : null}
+      </div>
+      <p className="mt-3 text-sm">
+        Profesional: {appointment.professional.displayName}
       </p>
-      <p>Profesional: {appointment.professional.displayName}</p>
-      <p>Sucursal: {appointment.branch.name}</p>
-      <p>
-        Estado: <strong>{STATUS_LABEL[appointment.status] ?? appointment.status}</strong>
+      <p className="text-sm">Sucursal: {appointment.branch.name}</p>
+      <p className="mt-2 text-sm">
+        Estado:{' '}
+        <strong>{STATUS_LABEL[appointment.status] ?? appointment.status}</strong>
       </p>
-      <p>${appointment.price.toLocaleString('es-AR')}</p>
+      <p className="font-serif text-xl">
+        ${appointment.price.toLocaleString('es-AR')}
+      </p>
       {canWrite ? (
-        <form onSubmit={saveNotes} style={{ display: 'grid', gap: 6 }}>
-          <label>
+        <form onSubmit={saveNotes} className="mt-4 grid gap-3">
+          <label className={labelClass}>
             Observaciones (cliente)
             <textarea
               value={observations}
               onChange={(e) => setObservations(e.target.value)}
               rows={2}
+              className={textareaClass}
             />
           </label>
-          <label>
+          <label className={labelClass}>
             Notas internas
             <textarea
               value={internalNotes}
               onChange={(e) => setInternalNotes(e.target.value)}
               rows={2}
+              className={textareaClass}
             />
           </label>
-          <button type="submit">Guardar notas</button>
+          <button type="submit" className={btnGhost}>
+            Guardar notas
+          </button>
         </form>
       ) : appointment.observations ? (
-        <p>Obs.: {appointment.observations}</p>
+        <p className="text-sm">Obs.: {appointment.observations}</p>
       ) : null}
-      {error ? <p role="alert">{error}</p> : null}
+      {error ? (
+        <div className="mt-3">
+          <Alert>{error}</Alert>
+        </div>
+      ) : null}
       {wa ? (
-        <p>
-          <a href={wa} target="_blank" rel="noreferrer">
+        <p className="mt-3">
+          <a
+            href={wa}
+            target="_blank"
+            rel="noreferrer"
+            className="text-sm underline decoration-line underline-offset-4"
+          >
             Hablar por WhatsApp
           </a>
         </p>
       ) : null}
       {canWrite && appointment.status !== 'CANCELADO' ? (
-        <div style={{ display: 'grid', gap: 8, marginTop: 12 }}>
-          <label>
+        <div className="mt-4 grid gap-2">
+          <label className="flex items-center gap-2 text-sm">
             <input
               type="checkbox"
               checked={appointment.paid}
               onChange={(e) => void setPaid(e.target.checked)}
-            />{' '}
+              className="size-4 rounded border-line"
+            />
             Pagado
           </label>
           {NEXT[appointment.status]?.map((status) => (
-            <button key={status} type="button" onClick={() => void setStatus(status)}>
+            <button
+              key={status}
+              type="button"
+              onClick={() => void setStatus(status)}
+              className={btnPrimary}
+            >
               Marcar {STATUS_LABEL[status]}
             </button>
           ))}
-          <form onSubmit={cancel} style={{ display: 'grid', gap: 6 }}>
+          <form onSubmit={cancel} className="grid gap-2">
             <input
               placeholder="Motivo (opcional)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
+              className={inputClass}
             />
-            <button type="submit">Cancelar turno</button>
+            <button type="submit" className={btnDanger}>
+              Cancelar turno
+            </button>
           </form>
         </div>
       ) : null}

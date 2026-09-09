@@ -1,3 +1,5 @@
+import { Page, PageTitle, cardClass, cn } from '../components/ui';
+
 const apiUrl =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3001/api/v1';
 
@@ -20,42 +22,43 @@ export default async function HomePage() {
   }
 
   return (
-    <main style={{ maxWidth: 720, margin: '4rem auto', padding: '0 1.5rem' }}>
-      <p style={{ letterSpacing: '0.08em', textTransform: 'uppercase', fontSize: 12 }}>
+    <Page className="py-16">
+      <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-muted">
         Turnero
       </p>
-      <h1 style={{ fontSize: 36, margin: '0.4rem 0 1rem' }}>Agenda SaaS</h1>
-      <p>
+      <PageTitle>Agenda SaaS</PageTitle>
+      <p className="-mt-4 max-w-xl text-muted">
         Plataforma multiempresa para sucursales, profesionales y turnos. El
-        documento maestro está en <code>docs/DOCUMENTO-MAESTRO.md</code>.
+        documento maestro está en <code className="rounded bg-white px-1.5 py-0.5 text-sm">docs/DOCUMENTO-MAESTRO.md</code>.
       </p>
-      <section
-        style={{
-          marginTop: 24,
-          padding: 16,
-          background: '#fff',
-          borderRadius: 12,
-          boxShadow: '0 8px 24px rgba(0,0,0,0.06)',
-        }}
-      >
-        <h2 style={{ fontSize: 16, marginTop: 0 }}>API</h2>
+      <section className={cn(cardClass, 'mt-8 max-w-xl p-6')}>
+        <h2 className="mt-0 font-serif text-2xl">API</h2>
         {health ? (
-          <p>
-            Estado: <strong>{health.status}</strong>
+          <p className="text-sm text-muted">
+            Estado: <strong className="text-ink">{health.status}</strong>
             {health.db ? ` · base de datos ${health.db}` : null}
           </p>
         ) : (
-          <p>
+          <p className="text-sm text-muted">
             No se pudo contactar {apiUrl}/health. Levantá la API en el puerto
             3001.
           </p>
         )}
-        <p>
-          <a href="/login">Ingresar</a>
-          {' · '}
-          <a href="/e/studio-elegance/login">Studio Élégance</a>
+        <p className="mt-4 flex flex-wrap gap-2">
+          <a
+            href="/login"
+            className="inline-flex rounded-full bg-ink px-4 py-2 text-sm font-medium text-white"
+          >
+            Ingresar
+          </a>
+          <a
+            href="/e/studio-elegance/login"
+            className="inline-flex rounded-full border border-line bg-white px-4 py-2 text-sm"
+          >
+            Studio Élégance
+          </a>
         </p>
       </section>
-    </main>
+    </Page>
   );
 }

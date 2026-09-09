@@ -5,6 +5,18 @@ import { AppShell } from '../../components/app-shell';
 import { monthEnd, monthStart, todayInZone } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
 import type { MeResponse } from '../../lib/types';
+import {
+  Alert,
+  btnGhost,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  Page,
+  PageTitle,
+  tdClass,
+  thClass,
+} from '../../components/ui';
 
 type Item = {
   professionalId: string;
@@ -104,82 +116,104 @@ export default function ReportesPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR', 'ENCARGADO']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1>Reportes</h1>
-        <input
-          type="date"
-          value={from}
-          onChange={(e) => setFrom(e.target.value)}
-        />
-        <input type="date" value={to} onChange={(e) => setTo(e.target.value)} />
-        {role === 'ADMINISTRADOR' ? (
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
+      <Page>
+        <PageTitle kicker="Números">Reportes</PageTitle>
+        <div className="mb-5 flex flex-wrap items-end gap-2">
+          <input
+            type="date"
+            value={from}
+            onChange={(e) => setFrom(e.target.value)}
+            className={cn(inputClass, 'mt-0 w-auto')}
+          />
+          <input
+            type="date"
+            value={to}
+            onChange={(e) => setTo(e.target.value)}
+            className={cn(inputClass, 'mt-0 w-auto')}
+          />
+          {role === 'ADMINISTRADOR' ? (
+            <select
+              value={branchId}
+              onChange={(e) => setBranchId(e.target.value)}
+              className={cn(inputClass, 'mt-0 w-auto')}
+            >
+              <option value="">Todas</option>
+              {branches.map((row) => (
+                <option key={row.id} value={row.id}>
+                  {row.name}
+                </option>
+              ))}
+            </select>
+          ) : null}
+          <button type="button" onClick={() => void load()} className={btnGhost}>
+            Actualizar
+          </button>
+          <button
+            type="button"
+            onClick={downloadCsv}
+            disabled={!items.length}
+            className={btnPrimary}
           >
-            <option value="">Todas</option>
-            {branches.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name}
-              </option>
-            ))}
-          </select>
-        ) : null}
-        <button type="button" onClick={() => void load()}>
-          Actualizar
-        </button>
-        <button type="button" onClick={downloadCsv} disabled={!items.length}>
-          Descargar CSV
-        </button>
-        {error ? <p role="alert">{error}</p> : null}
+            Descargar CSV
+          </button>
+        </div>
+        {error ? <Alert>{error}</Alert> : null}
         {daily ? (
-          <p>
+          <p className="mb-4 text-sm text-muted">
             Cifras del {from}: {daily.count} turnos · ${money(daily.facturado)}{' '}
             · ocupación {daily.occupancyPercent}%
           </p>
         ) : null}
-        <table style={{ width: '100%', marginTop: 16, background: '#fff' }}>
-          <thead>
-            <tr>
-              <th align="left">Persona</th>
-              <th>Turnos</th>
-              <th>Facturado</th>
-              <th>A pagar</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.length === 0 ? (
+        <div className={cn(cardClass, 'overflow-hidden')}>
+          <table className="w-full">
+            <thead>
               <tr>
-                <td colSpan={4}>Sin turnos atendidos en el período.</td>
+                <th className={thClass}>Persona</th>
+                <th className={cn(thClass, 'text-center')}>Turnos</th>
+                <th className={cn(thClass, 'text-right')}>Facturado</th>
+                <th className={cn(thClass, 'text-right')}>A pagar</th>
               </tr>
-            ) : null}
-            {items.map((row) => (
-              <tr key={row.professionalId}>
-                <td>{row.name}</td>
-                <td align="center">{row.turnos}</td>
-                <td align="right">${money(row.facturado)}</td>
-                <td align="right">${money(row.aPagar)}</td>
+            </thead>
+            <tbody>
+              {items.length === 0 ? (
+                <tr>
+                  <td className={tdClass} colSpan={4}>
+                    Sin turnos atendidos en el período.
+                  </td>
+                </tr>
+              ) : null}
+              {items.map((row) => (
+                <tr key={row.professionalId} className="hover:bg-cream/60">
+                  <td className={tdClass}>{row.name}</td>
+                  <td className={cn(tdClass, 'text-center')}>{row.turnos}</td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    ${money(row.facturado)}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    ${money(row.aPagar)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <td className={tdClass}>
+                  <strong>Total</strong>
+                </td>
+                <td className={cn(tdClass, 'text-center')}>
+                  <strong>{totals.turnos}</strong>
+                </td>
+                <td className={cn(tdClass, 'text-right')}>
+                  <strong>${money(totals.facturado)}</strong>
+                </td>
+                <td className={cn(tdClass, 'text-right')}>
+                  <strong>${money(totals.aPagar)}</strong>
+                </td>
               </tr>
-            ))}
-          </tbody>
-          <tfoot>
-            <tr>
-              <td>
-                <strong>Total</strong>
-              </td>
-              <td align="center">
-                <strong>{totals.turnos}</strong>
-              </td>
-              <td align="right">
-                <strong>${money(totals.facturado)}</strong>
-              </td>
-              <td align="right">
-                <strong>${money(totals.aPagar)}</strong>
-              </td>
-            </tr>
-          </tfoot>
-        </table>
-      </section>
+            </tfoot>
+          </table>
+        </div>
+      </Page>
     </AppShell>
   );
 }

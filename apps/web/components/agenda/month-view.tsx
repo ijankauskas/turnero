@@ -3,6 +3,7 @@
 import { monthCells, monthStart } from '../../lib/datetime';
 import type { Appointment } from './types';
 import { VISIBLE_STATUSES } from './types';
+import { cardClass, cn } from '../ui';
 
 const WEEKDAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -44,17 +45,11 @@ export function MonthView({
   }).format(new Date(`${monthStart(date)}T12:00:00`));
 
   return (
-    <div style={{ background: '#fff', borderRadius: 12, padding: 12 }}>
-      <h2 style={{ margin: '0 0 12px', textTransform: 'capitalize' }}>{title}</h2>
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(7, 1fr)',
-          gap: 8,
-        }}
-      >
+    <div className={cn(cardClass, 'p-4')}>
+      <h2 className="mt-0 mb-4 font-serif text-2xl capitalize">{title}</h2>
+      <div className="grid grid-cols-7 gap-2">
         {WEEKDAYS.map((day) => (
-          <div key={day} style={{ fontSize: 12, color: '#888', padding: 4 }}>
+          <div key={day} className="px-1 text-xs text-muted">
             {day}
           </div>
         ))}
@@ -65,20 +60,19 @@ export function MonthView({
               key={cell.date}
               type="button"
               onClick={() => onOpenDay(cell.date)}
-              style={{
-                minHeight: 88,
-                border: cell.date === date ? '2px solid var(--color-primary, #1a1a1a)' : '1px solid #eee',
-                borderRadius: 10,
-                background: cell.inMonth ? '#fff' : '#fafafa',
-                textAlign: 'left',
-                padding: 8,
-                cursor: 'pointer',
-                color: cell.inMonth ? '#1a1a1a' : '#bbb',
-              }}
+              className={cn(
+                'min-h-[88px] rounded-xl border p-2 text-left transition hover:border-ink/30',
+                cell.date === date
+                  ? 'border-ink bg-cream'
+                  : 'border-line',
+                cell.inMonth ? 'bg-paper text-ink' : 'bg-cream/50 text-muted',
+              )}
             >
-              <div style={{ fontWeight: 600 }}>{Number(cell.date.slice(8, 10))}</div>
+              <div className="font-semibold">
+                {Number(cell.date.slice(8, 10))}
+              </div>
               {count ? (
-                <div style={{ fontSize: 12, marginTop: 8 }}>
+                <div className="mt-2 text-xs text-muted">
                   {count} turno{count === 1 ? '' : 's'}
                 </div>
               ) : null}

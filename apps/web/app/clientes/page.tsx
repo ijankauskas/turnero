@@ -3,6 +3,18 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
 import { apiJson } from '../../lib/session';
+import {
+  Alert,
+  btnGhost,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  Page,
+  PageTitle,
+  tdClass,
+  thClass,
+} from '../../components/ui';
 
 type Client = {
   id: string;
@@ -76,90 +88,120 @@ export default function ClientesPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1 style={{ marginTop: 0 }}>Clientes</h1>
-        <input
-          placeholder="Buscar por nombre o teléfono"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') void load(query);
-          }}
-        />
-        <button type="button" onClick={() => void load(query)}>
-          Buscar
-        </button>
-        {error ? <p role="alert">{error}</p> : null}
+      <Page>
+        <PageTitle kicker="Directorio">Clientes</PageTitle>
+        <div className="mb-5 flex flex-wrap gap-2">
+          <input
+            placeholder="Buscar por nombre o teléfono"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') void load(query);
+            }}
+            className={cn(inputClass, 'mt-0 max-w-sm')}
+          />
+          <button type="button" onClick={() => void load(query)} className={btnGhost}>
+            Buscar
+          </button>
+        </div>
+        {error ? <Alert>{error}</Alert> : null}
         {matches.length > 0 ? (
-          <ul>
+          <ul className="mt-3 text-sm">
             {matches.map((row) => (
               <li key={row.id}>
                 Coincide:{' '}
-                <a href={`/clientes/${row.id}`}>
+                <a
+                  href={`/clientes/${row.id}`}
+                  className="underline decoration-line underline-offset-4"
+                >
                   {row.lastName}, {row.firstName} · {row.phone}
                 </a>
               </li>
             ))}
           </ul>
         ) : null}
-        {rows.length === 0 ? <p>No hay clientes todavía.</p> : null}
-        <table style={{ width: '100%', marginTop: 16, background: '#fff' }}>
-          <thead>
-            <tr>
-              <th align="left">Nombre</th>
-              <th align="left">Teléfono</th>
-              <th align="left">Email</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>
-                  <a href={`/clientes/${row.id}`}>
-                    {row.lastName}, {row.firstName}
-                  </a>
-                  {row.active === false ? ' (inactivo)' : ''}
-                </td>
-                <td>{row.phone}</td>
-                <td>{row.email ?? '—'}</td>
+        {rows.length === 0 ? (
+          <p className="text-sm text-muted">No hay clientes todavía.</p>
+        ) : null}
+        <div className={cn(cardClass, 'mt-4 overflow-hidden')}>
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className={thClass}>Nombre</th>
+                <th className={thClass}>Teléfono</th>
+                <th className={thClass}>Email</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-        <h2>Alta</h2>
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-cream/60">
+                  <td className={tdClass}>
+                    <a
+                      href={`/clientes/${row.id}`}
+                      className="underline decoration-line underline-offset-4"
+                    >
+                      {row.lastName}, {row.firstName}
+                    </a>
+                    {row.active === false ? (
+                      <span className="text-muted"> (inactivo)</span>
+                    ) : (
+                      ''
+                    )}
+                  </td>
+                  <td className={tdClass}>{row.phone}</td>
+                  <td className={tdClass}>{row.email ?? '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <form
+          onSubmit={onSubmit}
+          className={cn(cardClass, 'mt-8 grid max-w-md gap-3 p-5')}
+        >
+          <h2 className="m-0 font-serif text-2xl">Alta</h2>
           <input
             placeholder="Nombre"
             value={firstName}
             onChange={(e) => setFirstName(e.target.value)}
             required
+            className={inputClass}
           />
           <input
             placeholder="Apellido"
             value={lastName}
             onChange={(e) => setLastName(e.target.value)}
             required
+            className={inputClass}
           />
           <input
             placeholder="Teléfono"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             required
+            className={inputClass}
           />
           <input
             type="email"
             placeholder="Email (opcional)"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            className={inputClass}
           />
-          <button type="submit">Crear</button>
+          <button type="submit" className={btnPrimary}>
+            Crear
+          </button>
           {matches.length > 0 ? (
-            <button type="button" onClick={() => void create(true)}>
+            <button
+              type="button"
+              onClick={() => void create(true)}
+              className={btnGhost}
+            >
               Es otra persona: crear igual
             </button>
           ) : null}
         </form>
-      </section>
+      </Page>
     </AppShell>
   );
 }

@@ -9,10 +9,13 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
     "@turnero/shared": "0.0.1",
     "next": "^15.5.2",
+    "postcss": "^8.5.28",
     "react": "^19.1.1",
-    "react-dom": "^19.1.1"
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.3.3"
   },
   "devDependencies": {
     "@types/node": "^22.15.30",

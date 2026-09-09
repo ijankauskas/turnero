@@ -1,15 +1,36 @@
-html,
-body {
-  max-width: 100%;
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-dm-sans), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-cormorant), ui-serif, Georgia, "Times New Roman",
+    serif;
+  --color-cream: #f6f4f1;
+  --color-ink: #2c241c;
+  --color-muted: #6f6256;
+  --color-line: #e6dfd4;
+  --color-paper: #fffdfb;
+  --color-gold: #c4a36a;
+  --shadow-soft: 0 18px 50px -28px rgba(44, 36, 28, 0.45);
 }
 
-.app-header {
-  flex-wrap: wrap;
-  gap: 8px;
+@layer base {
+  html,
+  body {
+    max-width: 100%;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+.app-header nav a[aria-current="page"] {
+  color: var(--color-ink);
+  box-shadow: inset 0 -2px 0 currentColor;
 }
 
 .agenda-layout {
-  grid-template-columns: 240px 1fr auto;
+  grid-template-columns: 260px minmax(0, 1fr) auto;
 }
 
 .agenda-layout > aside,
@@ -17,9 +38,9 @@ body {
   min-width: 0;
 }
 
-@media (max-width: 960px) {
+@media (max-width: 1100px) {
   .agenda-layout {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr;
   }
 
   .app-header nav {

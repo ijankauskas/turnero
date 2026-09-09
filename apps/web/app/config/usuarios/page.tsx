@@ -4,6 +4,16 @@ import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { ROLE_LABEL } from '../../../lib/labels';
 import { apiJson } from '../../../lib/session';
+import {
+  Alert,
+  btnDanger,
+  btnPrimary,
+  cardClass,
+  cn,
+  inputClass,
+  Page,
+  PageTitle,
+} from '../../../components/ui';
 
 type User = {
   id: string;
@@ -78,38 +88,54 @@ export default function ConfigUsuariosPage() {
 
   return (
     <AppShell allow={['ADMINISTRADOR']}>
-      <section style={{ padding: '1.25rem' }}>
-        <h1>Usuarios</h1>
-        {error ? <p role="alert">{error}</p> : null}
-        <ul>
+      <Page>
+        <p className="mb-4">
+          <a
+            href="/config"
+            className="text-sm text-muted underline decoration-line underline-offset-4"
+          >
+            ← Configuración
+          </a>
+        </p>
+        <PageTitle kicker="Accesos">Usuarios</PageTitle>
+        {error ? <Alert>{error}</Alert> : null}
+        <ul className="m-0 mb-8 grid list-none gap-2 p-0">
           {rows.map((row) => (
-            <li key={row.id}>
-              {row.lastName}, {row.firstName} · {row.email} ·{' '}
-              {ROLE_LABEL[row.role] ?? row.role}
-              {row.active ? '' : ' (inactivo)'}
+            <li
+              key={row.id}
+              className={cn(cardClass, 'flex flex-wrap items-center justify-between gap-3 p-4')}
+            >
+              <span className="text-sm">
+                {row.lastName}, {row.firstName} · {row.email} ·{' '}
+                {ROLE_LABEL[row.role] ?? row.role}
+                {row.active ? '' : ' (inactivo)'}
+              </span>
               {row.active ? (
-                <>
-                  {' '}
-                  <button type="button" onClick={() => void deactivate(row.id)}>
-                    Desactivar
-                  </button>
-                </>
+                <button
+                  type="button"
+                  onClick={() => void deactivate(row.id)}
+                  className={btnDanger}
+                >
+                  Desactivar
+                </button>
               ) : null}
             </li>
           ))}
         </ul>
-        <form onSubmit={onSubmit} style={{ display: 'grid', gap: 8, maxWidth: 360 }}>
+        <form onSubmit={onSubmit} className={cn(cardClass, 'grid max-w-md gap-3 p-5')}>
           <input
             placeholder="Nombre"
             value={form.firstName}
             onChange={(e) => setForm({ ...form, firstName: e.target.value })}
             required
+            className={inputClass}
           />
           <input
             placeholder="Apellido"
             value={form.lastName}
             onChange={(e) => setForm({ ...form, lastName: e.target.value })}
             required
+            className={inputClass}
           />
           <input
             type="email"
@@ -117,6 +143,7 @@ export default function ConfigUsuariosPage() {
             value={form.email}
             onChange={(e) => setForm({ ...form, email: e.target.value })}
             required
+            className={inputClass}
           />
           <input
             type="password"
@@ -124,10 +151,12 @@ export default function ConfigUsuariosPage() {
             value={form.password}
             onChange={(e) => setForm({ ...form, password: e.target.value })}
             required
+            className={inputClass}
           />
           <select
             value={form.role}
             onChange={(e) => setForm({ ...form, role: e.target.value })}
+            className={inputClass}
           >
             {Object.entries(ROLE_LABEL).map(([value, label]) => (
               <option key={value} value={value}>
@@ -139,6 +168,7 @@ export default function ConfigUsuariosPage() {
             <select
               value={form.branchId}
               onChange={(e) => setForm({ ...form, branchId: e.target.value })}
+              className={inputClass}
             >
               {branches.map((row) => (
                 <option key={row.id} value={row.id}>
@@ -147,9 +177,11 @@ export default function ConfigUsuariosPage() {
               ))}
             </select>
           ) : null}
-          <button type="submit">Crear</button>
+          <button type="submit" className={btnPrimary}>
+            Crear
+          </button>
         </form>
-      </section>
+      </Page>
     </AppShell>
   );
 }

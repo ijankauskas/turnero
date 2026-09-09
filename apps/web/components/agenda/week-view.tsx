@@ -3,6 +3,7 @@
 import { addDays, startOfIsoWeek } from '../../lib/datetime';
 import type { Appointment, Professional } from './types';
 import { VISIBLE_STATUSES } from './types';
+import { apptSurface, cardClass, cn } from '../ui';
 
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
@@ -47,12 +48,10 @@ export function WeekView({
 
   return (
     <div
+      className={cn(cardClass, 'overflow-hidden')}
       style={{
         display: 'grid',
         gridTemplateColumns: `140px repeat(7, minmax(90px, 1fr))`,
-        background: '#fff',
-        borderRadius: 12,
-        overflow: 'hidden',
       }}
     >
       <div />
@@ -61,17 +60,13 @@ export function WeekView({
           key={day.iso}
           type="button"
           onClick={() => onOpenDay(day.iso)}
-          style={{
-            border: 0,
-            background: day.iso === date ? '#f3eee8' : '#fff',
-            padding: 8,
-            fontWeight: 600,
-            cursor: 'pointer',
-            borderLeft: '1px solid #eee',
-          }}
+          className={cn(
+            'border-l border-line px-2 py-3 text-sm font-semibold',
+            day.iso === date ? 'bg-cream' : 'bg-paper',
+          )}
         >
           {day.label}
-          <div style={{ fontWeight: 400, fontSize: 12 }}>
+          <div className="text-xs font-normal text-muted">
             {day.iso.slice(8, 10)}
           </div>
         </button>
@@ -79,12 +74,8 @@ export function WeekView({
       {professionals.map((pro) => [
         <div
           key={`${pro.id}-name`}
-          style={{
-            padding: 8,
-            fontWeight: 600,
-            color: pro.color,
-            borderTop: '1px solid #f0f0f0',
-          }}
+          className="border-t border-line px-3 py-2 text-sm font-semibold"
+          style={{ color: pro.color }}
         >
           {pro.displayName}
         </div>,
@@ -101,14 +92,10 @@ export function WeekView({
               onClick={() =>
                 canCreate ? onCreateSlot(pro.id, day.iso) : onOpenDay(day.iso)
               }
-              style={{
-                minHeight: 72,
-                borderTop: '1px solid #f0f0f0',
-                borderLeft: '1px solid #f0f0f0',
-                padding: 4,
-                cursor: 'pointer',
-                background: day.iso === date ? '#faf7f3' : '#fff',
-              }}
+              className={cn(
+                'min-h-[72px] cursor-pointer border-t border-l border-line p-1',
+                day.iso === date ? 'bg-cream/60' : 'bg-paper',
+              )}
             >
               {ofDay.map((item) => (
                 <button
@@ -118,19 +105,8 @@ export function WeekView({
                     event.stopPropagation();
                     onSelect(item);
                   }}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'left',
-                    border: 0,
-                    background: pro.color,
-                    color: '#fff',
-                    borderRadius: 6,
-                    padding: '4px 6px',
-                    fontSize: 11,
-                    marginBottom: 4,
-                    cursor: 'pointer',
-                  }}
+                  className="mb-1 block w-full rounded-lg px-2 py-1 text-left text-[11px]"
+                  style={apptSurface(pro.color)}
                 >
                   {item.serviceNameSnapshot}
                 </button>

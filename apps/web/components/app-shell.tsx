@@ -1,13 +1,14 @@
 'use client';
 
 import { ReactNode, useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { ROLE_LABEL } from '../lib/labels';
 import {
   apiFetch,
   clearSession,
   readSession,
 } from '../lib/session';
+import { cn } from './ui';
 
 type MeResponse = {
   user: {
@@ -24,6 +25,26 @@ type MeResponse = {
   };
 };
 
+const NAV = [
+  { href: '/agenda', label: 'Agenda', roles: null as string[] | null },
+  {
+    href: '/clientes',
+    label: 'Clientes',
+    roles: ['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION'],
+  },
+  {
+    href: '/prestaciones',
+    label: 'Prestaciones',
+    roles: ['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION'],
+  },
+  {
+    href: '/reportes',
+    label: 'Reportes',
+    roles: ['ADMINISTRADOR', 'ENCARGADO'],
+  },
+  { href: '/config', label: 'Configuración', roles: ['ADMINISTRADOR'] },
+];
+
 export function AppShell({
   children,
   allow,
@@ -32,6 +53,7 @@ export function AppShell({
   allow?: string[];
 }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [me, setMe] = useState<MeResponse | null>(null);
 
   useEffect(() => {
@@ -63,56 +85,62 @@ export function AppShell({
 
   if (!me || forbidden) {
     return (
-      <p style={{ padding: '2rem', textAlign: 'center' }}>Cargando…</p>
+      <p className="px-6 py-16 text-center text-sm text-muted">Cargando…</p>
     );
   }
 
-  const accent = me.company.primaryColor ?? '#1a1a1a';
-  const canSeeReports =
-    me.user.role === 'ADMINISTRADOR' || me.user.role === 'ENCARGADO';
-  const canSeeConfig = me.user.role === 'ADMINISTRADOR';
-  const isProfessional = me.user.role === 'PROFESIONAL';
+  const accent = me.company.primaryColor ?? '#2c241c';
+  const links = NAV.filter(
+    (item) => !item.roles || item.roles.includes(me.user.role),
+  );
 
   return (
     <div
+      className="min-h-screen"
       style={{
-        minHeight: '100vh',
         background: me.company.secondaryColor ?? '#f6f4f1',
         ['--color-primary' as string]: accent,
       }}
     >
-      <header
-        className="app-header"
-        style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          padding: '12px 20px',
-          background: '#fff',
-          borderBottom: `3px solid ${accent}`,
-        }}
-      >
-        <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <header className="app-header sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-line/80 bg-paper/90 px-5 py-3 backdrop-blur md:px-8">
+        <span className="flex min-w-0 items-center gap-3">
           {me.company.logoUrl ? (
             <img
               src={me.company.logoUrl}
               alt={me.company.name}
-              style={{ height: 28, maxWidth: 120, objectFit: 'contain' }}
+              className="h-8 max-w-[120px] object-contain"
             />
           ) : null}
-          <strong>{me.company.name}</strong>
+          <strong className="truncate font-serif text-xl font-semibold tracking-tight">
+            {me.company.name}
+          </strong>
         </span>
-        <nav style={{ display: 'flex', gap: 16, fontSize: 14 }}>
-          <a href="/agenda">Agenda</a>
-          {!isProfessional ? <a href="/clientes">Clientes</a> : null}
-          {!isProfessional ? <a href="/prestaciones">Prestaciones</a> : null}
-          {canSeeReports ? <a href="/reportes">Reportes</a> : null}
-          {canSeeConfig ? <a href="/config">Configuración</a> : null}
+        <nav className="flex flex-wrap items-center gap-1 text-sm text-muted">
+          {links.map((item) => {
+            const current =
+              item.href === '/agenda'
+                ? pathname === '/agenda'
+                : pathname.startsWith(item.href);
+            return (
+              <a
+                key={item.href}
+                href={item.href}
+                aria-current={current ? 'page' : undefined}
+                className={cn(
+                  'rounded-full px-3 py-1.5 transition hover:bg-cream hover:text-ink',
+                  current && 'bg-cream text-ink',
+                )}
+              >
+                {item.label}
+              </a>
+            );
+          })}
         </nav>
-        <span style={{ fontSize: 13 }}>
-          {me.user.firstName} {me.user.lastName} ·{' '}
-          {ROLE_LABEL[me.user.role] ?? me.user.role}
-          {' · '}
+        <span className="flex items-center gap-3 text-[13px] text-muted">
+          <span className="hidden sm:inline">
+            {me.user.firstName} {me.user.lastName} ·{' '}
+            {ROLE_LABEL[me.user.role] ?? me.user.role}
+          </span>
           <button
             type="button"
             onClick={() => {
@@ -126,12 +154,7 @@ export function AppShell({
               clearSession();
               router.replace('/login');
             }}
-            style={{
-              border: 0,
-              background: 'transparent',
-              textDecoration: 'underline',
-              cursor: 'pointer',
-            }}
+            className="rounded-full border border-line bg-white px-3 py-1.5 text-ink transition hover:bg-cream"
           >
             Salir
           </button>
