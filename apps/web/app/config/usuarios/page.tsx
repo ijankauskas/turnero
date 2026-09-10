@@ -29,8 +29,19 @@ type User = {
   lastName: string;
   role: string;
   active: boolean;
+  branchId: string | null;
 };
 type Branch = { id: string; name: string };
+
+const EMPTY = {
+  email: '',
+  password: '',
+  firstName: '',
+  lastName: '',
+  role: 'RECEPCION',
+  branchId: '',
+  active: true,
+};
 
 export default function ConfigUsuariosPage() {
   const [rows, setRows] = useState<User[]>([]);
@@ -42,14 +53,8 @@ export default function ConfigUsuariosPage() {
   const [pageCount, setPageCount] = useState(1);
   const [total, setTotal] = useState(0);
   const [open, setOpen] = useState(false);
-  const [form, setForm] = useState({
-    email: '',
-    password: '',
-    firstName: '',
-    lastName: '',
-    role: 'RECEPCION',
-    branchId: '',
-  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [form, setForm] = useState(EMPTY);
 
   async function load(nextPage = page, nextSearch = search) {
     const [users, suc] = await Promise.all([
@@ -65,41 +70,86 @@ export default function ConfigUsuariosPage() {
     setPage(users.page);
     setPageCount(users.pageCount);
     setBranches(suc);
-    setForm((current) => ({
-      ...current,
-      branchId: current.branchId || suc[0]?.id || '',
-    }));
   }
 
   useEffect(() => {
     void load(page, search).catch((err: Error) => setError(err.message));
   }, [page, search]);
 
+  function closeModal() {
+    setOpen(false);
+    setEditingId(null);
+    setForm(EMPTY);
+    setError(null);
+  }
+
+  function openCreate() {
+    setError(null);
+    setEditingId(null);
+    setForm({ ...EMPTY, branchId: branches[0]?.id || '' });
+    setOpen(true);
+  }
+
+  function openEdit(row: User) {
+    setError(null);
+    setEditingId(row.id);
+    setForm({
+      email: row.email,
+      password: '',
+      firstName: row.firstName,
+      lastName: row.lastName,
+      role: row.role,
+      branchId: row.branchId ?? '',
+      active: row.active,
+    });
+    setOpen(true);
+  }
+
+  function branchName(branchId: string | null) {
+    if (!branchId) return '—';
+    return branches.find((row) => row.id === branchId)?.name ?? '—';
+  }
+
+  function branchPayload() {
+    if (form.role === 'ADMINISTRADOR') return null;
+    return form.branchId || null;
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
     try {
+      if (editingId) {
+        const payload: Record<string, unknown> = {
+          email: form.email,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          role: form.role,
+          branchId: branchPayload(),
+          active: form.active,
+        };
+        if (form.password) payload.password = form.password;
+        await apiJson(`/users/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        closeModal();
+        await load();
+        return;
+      }
       await apiJson('/users', {
         method: 'POST',
         body: JSON.stringify({
-          ...form,
+          email: form.email,
+          password: form.password,
+          firstName: form.firstName,
+          lastName: form.lastName,
+          role: form.role,
           branchId:
-            form.role === 'ADMINISTRADOR' || form.role === 'PROFESIONAL'
-              ? form.role === 'ADMINISTRADOR'
-                ? undefined
-                : form.branchId || undefined
-              : form.branchId,
+            form.role === 'ADMINISTRADOR' ? undefined : form.branchId || undefined,
         }),
       });
-      setForm({
-        email: '',
-        password: '',
-        firstName: '',
-        lastName: '',
-        role: 'RECEPCION',
-        branchId: branches[0]?.id || '',
-      });
-      setOpen(false);
+      closeModal();
       setPage(1);
       setSearch('');
       setQuery('');
@@ -133,14 +183,7 @@ export default function ConfigUsuariosPage() {
         <PageTitle
           kicker="Accesos"
           actions={
-            <button
-              type="button"
-              className={btnPrimary}
-              onClick={() => {
-                setError(null);
-                setOpen(true);
-              }}
-            >
+            <button type="button" className={btnPrimary} onClick={openCreate}>
               Nuevo usuario
             </button>
           }
@@ -179,6 +222,7 @@ export default function ConfigUsuariosPage() {
                 <th className={thClass}>Nombre</th>
                 <th className={thClass}>Email</th>
                 <th className={thClass}>Rol</th>
+                <th className={thClass}>Sucursal</th>
                 <th className={thClass}></th>
               </tr>
             </thead>
@@ -187,22 +231,34 @@ export default function ConfigUsuariosPage() {
                 <tr key={row.id} className="hover:bg-canvas">
                   <td className={tdClass}>
                     {row.lastName}, {row.firstName}
-                    {row.active ? '' : (
+                    {row.active ? (
+                      ''
+                    ) : (
                       <span className="text-muted"> (inactivo)</span>
                     )}
                   </td>
                   <td className={tdClass}>{row.email}</td>
                   <td className={tdClass}>{ROLE_LABEL[row.role] ?? row.role}</td>
+                  <td className={tdClass}>{branchName(row.branchId)}</td>
                   <td className={cn(tdClass, 'text-right')}>
-                    {row.active ? (
+                    <div className="flex flex-wrap justify-end gap-2">
                       <button
                         type="button"
-                        onClick={() => void deactivate(row.id)}
-                        className={btnDanger}
+                        className={btnGhost}
+                        onClick={() => openEdit(row)}
                       >
-                        Desactivar
+                        Editar
                       </button>
-                    ) : null}
+                      {row.active ? (
+                        <button
+                          type="button"
+                          onClick={() => void deactivate(row.id)}
+                          className={btnDanger}
+                        >
+                          Desactivar
+                        </button>
+                      ) : null}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -217,11 +273,8 @@ export default function ConfigUsuariosPage() {
         </div>
         {open ? (
           <Modal
-            title="Nuevo usuario"
-            onClose={() => {
-              setOpen(false);
-              setError(null);
-            }}
+            title={editingId ? 'Editar usuario' : 'Nuevo usuario'}
+            onClose={closeModal}
           >
             {error ? <Alert>{error}</Alert> : null}
             <form onSubmit={onSubmit} className="grid gap-3">
@@ -258,17 +311,23 @@ export default function ConfigUsuariosPage() {
                 />
               </label>
               <label className={labelClass}>
-                Contraseña
+                {editingId ? 'Nueva contraseña (opcional)' : 'Contraseña'}
                 <input
                   type="password"
                   value={form.password}
                   onChange={(e) =>
                     setForm({ ...form, password: e.target.value })
                   }
-                  required
+                  required={!editingId}
+                  minLength={8}
                   className={inputClass}
                 />
               </label>
+              {editingId ? (
+                <p className="text-xs text-muted">
+                  Dejála vacía para no cambiar la contraseña.
+                </p>
+              ) : null}
               <label className={labelClass}>
                 Rol
                 <select
@@ -293,6 +352,9 @@ export default function ConfigUsuariosPage() {
                     }
                     className={inputClass}
                   >
+                    {form.role === 'PROFESIONAL' ? (
+                      <option value="">Sin sucursal de acceso</option>
+                    ) : null}
                     {branches.map((row) => (
                       <option key={row.id} value={row.id}>
                         {row.name}
@@ -301,8 +363,21 @@ export default function ConfigUsuariosPage() {
                   </select>
                 </label>
               ) : null}
+              {editingId ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) =>
+                      setForm({ ...form, active: e.target.checked })
+                    }
+                    className="size-4 rounded border-line"
+                  />
+                  Activo
+                </label>
+              ) : null}
               <button type="submit" className={btnPrimary}>
-                Crear
+                {editingId ? 'Guardar' : 'Crear'}
               </button>
             </form>
           </Modal>

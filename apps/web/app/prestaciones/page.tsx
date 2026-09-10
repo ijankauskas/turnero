@@ -30,6 +30,14 @@ type Service = {
   active: boolean;
 };
 
+const EMPTY = {
+  name: '',
+  durationMinutes: 30,
+  basePrice: 10000,
+  openPrice: false,
+  active: true,
+};
+
 export default function PrestacionesPage() {
   const [rows, setRows] = useState<Service[]>([]);
   const [query, setQuery] = useState('');
@@ -37,10 +45,8 @@ export default function PrestacionesPage() {
   const [page, setPage] = useState(1);
   const [pageCount, setPageCount] = useState(1);
   const [total, setTotal] = useState(0);
-  const [name, setName] = useState('');
-  const [durationMinutes, setDurationMinutes] = useState(30);
-  const [basePrice, setBasePrice] = useState(10000);
-  const [openPrice, setOpenPrice] = useState(false);
+  const [form, setForm] = useState(EMPTY);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [open, setOpen] = useState(false);
@@ -63,38 +69,62 @@ export default function PrestacionesPage() {
     void load(page, search).catch((err: Error) => setError(err.message));
   }, [page, search]);
 
+  function closeModal() {
+    setOpen(false);
+    setEditingId(null);
+    setForm(EMPTY);
+    setError(null);
+  }
+
+  function openCreate() {
+    setError(null);
+    setEditingId(null);
+    setForm(EMPTY);
+    setOpen(true);
+  }
+
+  function openEdit(row: Service) {
+    setError(null);
+    setEditingId(row.id);
+    setForm({
+      name: row.name,
+      durationMinutes: row.durationMinutes,
+      basePrice: row.basePrice,
+      openPrice: row.openPrice,
+      active: row.active,
+    });
+    setOpen(true);
+  }
+
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    setError(null);
+    const payload = {
+      name: form.name,
+      durationMinutes: form.durationMinutes,
+      basePrice: form.openPrice ? 0 : form.basePrice,
+      openPrice: form.openPrice,
+      ...(editingId ? { active: form.active } : {}),
+    };
     try {
+      if (editingId) {
+        await apiJson(`/services/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify(payload),
+        });
+        closeModal();
+        await load();
+        return;
+      }
       await apiJson('/services', {
         method: 'POST',
-        body: JSON.stringify({
-          name,
-          durationMinutes,
-          basePrice: openPrice ? 0 : basePrice,
-          openPrice,
-        }),
+        body: JSON.stringify(payload),
       });
-      setName('');
-      setOpenPrice(false);
-      setOpen(false);
+      closeModal();
       setPage(1);
       setSearch('');
       setQuery('');
       await load(1, '');
-    } catch (err) {
-      setError((err as Error).message);
-    }
-  }
-
-  async function patch(id: string, data: Partial<Service>) {
-    setError(null);
-    try {
-      await apiJson(`/services/${id}`, {
-        method: 'PATCH',
-        body: JSON.stringify(data),
-      });
-      await load();
     } catch (err) {
       setError((err as Error).message);
     }
@@ -107,14 +137,7 @@ export default function PrestacionesPage() {
           kicker="Catálogo"
           actions={
             isAdmin ? (
-              <button
-                type="button"
-                className={btnPrimary}
-                onClick={() => {
-                  setError(null);
-                  setOpen(true);
-                }}
-              >
+              <button type="button" className={btnPrimary} onClick={openCreate}>
                 Nueva prestación
               </button>
             ) : null
@@ -155,78 +178,34 @@ export default function PrestacionesPage() {
                 <th className={cn(thClass, 'text-center')}>Minutos</th>
                 <th className={cn(thClass, 'text-right')}>Precio</th>
                 <th className={cn(thClass, 'text-center')}>Estado</th>
+                <th className={thClass}></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="hover:bg-canvas">
-                  <td className={tdClass}>
-                    {isAdmin ? (
-                      <input
-                        defaultValue={row.name}
-                        onBlur={(e) => {
-                          if (e.target.value !== row.name) {
-                            void patch(row.id, { name: e.target.value });
-                          }
-                        }}
-                        className={cn(inputClass, 'mt-0')}
-                      />
-                    ) : (
-                      row.name
-                    )}
-                  </td>
+                  <td className={tdClass}>{row.name}</td>
                   <td className={cn(tdClass, 'text-center')}>
                     {row.durationMinutes}
                   </td>
                   <td className={cn(tdClass, 'text-right')}>
-                    {row.openPrice ? (
-                      <div className="flex flex-col items-end gap-1">
-                        <span>A definir</span>
-                        {isAdmin ? (
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            onClick={() =>
-                              void patch(row.id, { openPrice: false })
-                            }
-                          >
-                            Usar precio fijo
-                          </button>
-                        ) : null}
-                      </div>
-                    ) : (
-                      <div className="flex flex-col items-end gap-1">
-                        <span>${row.basePrice.toLocaleString('es-AR')}</span>
-                        {isAdmin ? (
-                          <button
-                            type="button"
-                            className={btnGhost}
-                            onClick={() =>
-                              void patch(row.id, { openPrice: true })
-                            }
-                          >
-                            Precio a definir
-                          </button>
-                        ) : null}
-                      </div>
-                    )}
+                    {row.openPrice
+                      ? 'A definir'
+                      : `$${row.basePrice.toLocaleString('es-AR')}`}
                   </td>
                   <td className={cn(tdClass, 'text-center')}>
+                    {row.active ? 'Activa' : 'Inactiva'}
+                  </td>
+                  <td className={cn(tdClass, 'text-right')}>
                     {isAdmin ? (
                       <button
                         type="button"
                         className={btnGhost}
-                        onClick={() =>
-                          void patch(row.id, { active: !row.active })
-                        }
+                        onClick={() => openEdit(row)}
                       >
-                        {row.active ? 'Desactivar' : 'Activar'}
+                        Editar
                       </button>
-                    ) : row.active ? (
-                      'Activa'
-                    ) : (
-                      'Inactiva'
-                    )}
+                    ) : null}
                   </td>
                 </tr>
               ))}
@@ -241,19 +220,16 @@ export default function PrestacionesPage() {
         </div>
         {open ? (
           <Modal
-            title="Nueva prestación"
-            onClose={() => {
-              setOpen(false);
-              setError(null);
-            }}
+            title={editingId ? 'Editar prestación' : 'Nueva prestación'}
+            onClose={closeModal}
           >
             {error ? <Alert>{error}</Alert> : null}
             <form onSubmit={onSubmit} className="grid gap-3">
               <label className={labelClass}>
                 Nombre
                 <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
                   required
                   className={inputClass}
                 />
@@ -262,8 +238,13 @@ export default function PrestacionesPage() {
                 Duración (minutos)
                 <input
                   type="number"
-                  value={durationMinutes}
-                  onChange={(e) => setDurationMinutes(Number(e.target.value))}
+                  value={form.durationMinutes}
+                  onChange={(e) =>
+                    setForm({
+                      ...form,
+                      durationMinutes: Number(e.target.value),
+                    })
+                  }
                   className={inputClass}
                 />
               </label>
@@ -271,17 +252,21 @@ export default function PrestacionesPage() {
                 Precio base
                 <input
                   type="number"
-                  value={basePrice}
-                  onChange={(e) => setBasePrice(Number(e.target.value))}
-                  disabled={openPrice}
+                  value={form.basePrice}
+                  onChange={(e) =>
+                    setForm({ ...form, basePrice: Number(e.target.value) })
+                  }
+                  disabled={form.openPrice}
                   className={inputClass}
                 />
               </label>
               <label className="flex items-start gap-2 text-sm">
                 <input
                   type="checkbox"
-                  checked={openPrice}
-                  onChange={(e) => setOpenPrice(e.target.checked)}
+                  checked={form.openPrice}
+                  onChange={(e) =>
+                    setForm({ ...form, openPrice: e.target.checked })
+                  }
                   className="mt-0.5 size-4 rounded border-line"
                 />
                 <span>
@@ -292,8 +277,21 @@ export default function PrestacionesPage() {
                   </span>
                 </span>
               </label>
+              {editingId ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) =>
+                      setForm({ ...form, active: e.target.checked })
+                    }
+                    className="size-4 rounded border-line"
+                  />
+                  Activa
+                </label>
+              ) : null}
               <button type="submit" className={btnPrimary}>
-                Crear
+                {editingId ? 'Guardar' : 'Crear'}
               </button>
             </form>
           </Modal>

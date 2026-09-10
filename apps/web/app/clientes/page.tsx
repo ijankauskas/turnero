@@ -38,10 +38,12 @@ export default function ClientesPage() {
   const [rows, setRows] = useState<Client[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
+  const [active, setActive] = useState(true);
   const [matches, setMatches] = useState<Client[]>([]);
 
   async function load(nextPage = page, nextSearch = search) {
@@ -61,17 +63,56 @@ export default function ClientesPage() {
   }, [page, search]);
 
   function resetForm() {
+    setEditingId(null);
     setFirstName('');
     setLastName('');
     setPhone('');
     setEmail('');
+    setActive(true);
     setMatches([]);
     setError(null);
   }
 
-  async function create(forceCreate = false) {
+  function openCreate() {
+    resetForm();
+    setOpen(true);
+  }
+
+  function openEdit(row: Client) {
+    setError(null);
+    setMatches([]);
+    setEditingId(row.id);
+    setFirstName(row.firstName);
+    setLastName(row.lastName);
+    setPhone(row.phone);
+    setEmail(row.email ?? '');
+    setActive(row.active !== false);
+    setOpen(true);
+  }
+
+  function closeModal() {
+    setOpen(false);
+    resetForm();
+  }
+
+  async function save(forceCreate = false) {
     setError(null);
     try {
+      if (editingId) {
+        await apiJson(`/clients/${editingId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({
+            firstName,
+            lastName,
+            phone,
+            email: email || null,
+            active,
+          }),
+        });
+        closeModal();
+        await load();
+        return;
+      }
       await apiJson('/clients', {
         method: 'POST',
         body: JSON.stringify({
@@ -82,8 +123,7 @@ export default function ClientesPage() {
           forceCreate,
         }),
       });
-      resetForm();
-      setOpen(false);
+      closeModal();
       setPage(1);
       setSearch('');
       setQuery('');
@@ -93,7 +133,11 @@ export default function ClientesPage() {
         status?: number;
         body?: { matches?: Client[]; error?: string };
       };
-      if (typed.status === 409 && typed.body?.error === 'DUPLICATE_PHONE') {
+      if (
+        !editingId &&
+        typed.status === 409 &&
+        typed.body?.error === 'DUPLICATE_PHONE'
+      ) {
         setMatches((typed.body.matches as Client[]) ?? []);
         setError(
           'Ya hay un cliente con ese teléfono. Si es otra persona, confirmá para crear igual.',
@@ -106,7 +150,7 @@ export default function ClientesPage() {
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
-    await create(false);
+    await save(false);
   }
 
   return (
@@ -115,14 +159,7 @@ export default function ClientesPage() {
         <PageTitle
           kicker="Directorio"
           actions={
-            <button
-              type="button"
-              className={btnPrimary}
-              onClick={() => {
-                resetForm();
-                setOpen(true);
-              }}
-            >
+            <button type="button" className={btnPrimary} onClick={openCreate}>
               Nuevo cliente
             </button>
           }
@@ -164,18 +201,14 @@ export default function ClientesPage() {
                 <th className={thClass}>Nombre</th>
                 <th className={thClass}>Teléfono</th>
                 <th className={thClass}>Email</th>
+                <th className={thClass}></th>
               </tr>
             </thead>
             <tbody>
               {rows.map((row) => (
                 <tr key={row.id} className="hover:bg-canvas">
                   <td className={tdClass}>
-                    <a
-                      href={`/clientes/${row.id}`}
-                      className="underline decoration-line underline-offset-4"
-                    >
-                      {row.lastName}, {row.firstName}
-                    </a>
+                    {row.lastName}, {row.firstName}
                     {row.active === false ? (
                       <span className="text-muted"> (inactivo)</span>
                     ) : (
@@ -184,6 +217,23 @@ export default function ClientesPage() {
                   </td>
                   <td className={tdClass}>{row.phone}</td>
                   <td className={tdClass}>{row.email ?? '—'}</td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    <div className="flex flex-wrap justify-end gap-2">
+                      <a
+                        href={`/clientes/${row.id}`}
+                        className={btnGhost}
+                      >
+                        Ver ficha
+                      </a>
+                      <button
+                        type="button"
+                        className={btnGhost}
+                        onClick={() => openEdit(row)}
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -197,11 +247,8 @@ export default function ClientesPage() {
         </div>
         {open ? (
           <Modal
-            title="Nuevo cliente"
-            onClose={() => {
-              setOpen(false);
-              resetForm();
-            }}
+            title={editingId ? 'Editar cliente' : 'Nuevo cliente'}
+            onClose={closeModal}
           >
             {error ? <Alert>{error}</Alert> : null}
             {matches.length > 0 ? (
@@ -256,14 +303,25 @@ export default function ClientesPage() {
                   className={inputClass}
                 />
               </label>
+              {editingId ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={active}
+                    onChange={(e) => setActive(e.target.checked)}
+                    className="size-4 rounded border-line"
+                  />
+                  Activo
+                </label>
+              ) : null}
               <div className="flex flex-wrap gap-2">
                 <button type="submit" className={btnPrimary}>
-                  Crear
+                  {editingId ? 'Guardar' : 'Crear'}
                 </button>
                 {matches.length > 0 ? (
                   <button
                     type="button"
-                    onClick={() => void create(true)}
+                    onClick={() => void save(true)}
                     className={btnGhost}
                   >
                     Es otra persona: crear igual
