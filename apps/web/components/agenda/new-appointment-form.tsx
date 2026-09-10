@@ -167,216 +167,228 @@ export function NewAppointmentForm({
     professionals.find((row) => row.id === professionalId)?.displayName ?? '';
 
   return (
-    <aside
-      className={cn(
-        cardClass,
-        'sticky top-4 flex max-h-[calc(100vh-2rem)] w-full max-w-[380px] flex-col self-start overflow-hidden',
-      )}
+    <div
+      className="fixed inset-0 z-40 grid place-items-center bg-ink/40 p-4"
+      onClick={onClose}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
-        <div>
-          <h2 className="m-0 text-lg font-semibold">Nuevo turno</h2>
-          <p className="mt-1 text-sm capitalize text-muted">
-            {dateLabel}
-            {time ? ` · ${time}` : ''}
-            {professionalName ? ` · ${professionalName}` : ''}
-          </p>
-        </div>
-        <button type="button" onClick={onClose} className={btnGhost}>
-          Cerrar
-        </button>
-      </header>
       <form
         onSubmit={onSubmit}
-        className="grid flex-1 gap-3 overflow-auto px-5 py-4"
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          cardClass,
+          'grid max-h-[90vh] w-full max-w-3xl grid-rows-[auto_1fr_auto] overflow-hidden',
+        )}
       >
-        <label className={labelClass}>
-          Sucursal
-          <select
-            value={branchId}
-            onChange={(e) => setBranchId(e.target.value)}
-            className={inputClass}
-          >
-            {branches.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.name}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={labelClass}>
-          Profesional
-          <select
-            value={professionalId}
-            onChange={(e) => setProfessionalId(e.target.value)}
-            className={inputClass}
-          >
-            {professionals.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.displayName}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={labelClass}>
-          Servicio
-          <select
-            value={serviceId}
-            onChange={(e) => setServiceId(e.target.value)}
-            className={inputClass}
-          >
-            {offers.map((row) => (
-              <option key={row.serviceId} value={row.serviceId}>
-                {row.serviceName} ({row.durationMinutes} min) · $
-                {row.price.toLocaleString('es-AR')}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className={labelClass}>
-          Buscar cliente
-          <input
-            value={clientQuery}
-            onChange={(e) => setClientQuery(e.target.value)}
-            placeholder="Nombre o teléfono"
-            className={inputClass}
-          />
-        </label>
-        <label className={labelClass}>
-          Cliente
-          <select
-            value={clientId}
-            onChange={(e) => setClientId(e.target.value)}
-            className={inputClass}
-          >
-            {visibleClients.map((row) => (
-              <option key={row.id} value={row.id}>
-                {row.lastName}, {row.firstName} · {row.phone}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button
-          type="button"
-          className={btnGhost}
-          onClick={() => {
-            setNewClient((current) => !current);
-            setClientMatches([]);
-          }}
-        >
-          {newClient ? 'Usar cliente existente' : 'Nuevo cliente'}
-        </button>
-        {newClient ? (
-          <div className="grid gap-2 rounded-lg bg-canvas p-3">
-            <input
-              placeholder="Nombre"
-              value={newFirstName}
-              onChange={(e) => setNewFirstName(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              placeholder="Apellido"
-              value={newLastName}
-              onChange={(e) => setNewLastName(e.target.value)}
-              className={inputClass}
-            />
-            <input
-              placeholder="Teléfono"
-              value={newPhone}
-              onChange={(e) => setNewPhone(e.target.value)}
-              className={inputClass}
-            />
-            <button
-              type="button"
-              onClick={() => void createClient(false)}
-              disabled={!newFirstName || !newLastName || !newPhone}
-              className={btnPrimary}
-            >
-              Crear cliente
-            </button>
-            {clientMatches.length > 0 ? (
-              <>
-                <ul className="m-0 list-disc pl-5 text-sm">
-                  {clientMatches.map((row) => (
-                    <li key={row.id}>
+        <header className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
+          <div>
+            <h2 className="m-0 text-xl font-semibold">Nuevo turno</h2>
+            <p className="mt-1 text-sm capitalize text-muted">
+              {dateLabel}
+              {time ? ` · ${time}` : ''}
+              {professionalName ? ` · ${professionalName}` : ''}
+            </p>
+          </div>
+          <button type="button" onClick={onClose} className={btnGhost}>
+            Cerrar
+          </button>
+        </header>
+        <div className="grid gap-6 overflow-auto px-6 py-5 md:grid-cols-2">
+          <div className="grid content-start gap-3">
+            <label className={labelClass}>
+              Sucursal
+              <select
+                value={branchId}
+                onChange={(e) => setBranchId(e.target.value)}
+                className={inputClass}
+              >
+                {branches.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={labelClass}>
+              Profesional
+              <select
+                value={professionalId}
+                onChange={(e) => setProfessionalId(e.target.value)}
+                className={inputClass}
+              >
+                {professionals.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.displayName}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={labelClass}>
+              Servicio
+              <select
+                value={serviceId}
+                onChange={(e) => setServiceId(e.target.value)}
+                className={inputClass}
+              >
+                {offers.map((row) => (
+                  <option key={row.serviceId} value={row.serviceId}>
+                    {row.serviceName} ({row.durationMinutes} min) · $
+                    {row.price.toLocaleString('es-AR')}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <label className={labelClass}>
+              Hora
+              <input
+                type="time"
+                value={time}
+                onChange={(e) => setTime(e.target.value)}
+                className={inputClass}
+              />
+            </label>
+            {slots.length ? (
+              <div>
+                <div className="mb-2 text-[13px] font-medium text-muted">
+                  Horarios libres
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {slots.slice(0, 16).map((slot) => {
+                    const clock = formatClock(slot.startAt, timezone);
+                    return (
                       <button
+                        key={slot.startAt}
                         type="button"
-                        className="underline decoration-line underline-offset-4"
-                        onClick={() => {
-                          setClientId(row.id);
-                          setClients((rows) =>
-                            rows.some((item) => item.id === row.id)
-                              ? rows
-                              : [row, ...rows],
-                          );
-                          setNewClient(false);
-                          setClientMatches([]);
-                          setError(null);
-                        }}
+                        onClick={() => setTime(clock)}
+                        className={cn(
+                          'rounded-md px-3 py-1 text-sm',
+                          clock === time
+                            ? 'bg-accent text-white'
+                            : 'bg-canvas text-ink',
+                        )}
                       >
-                        Usar {row.lastName}, {row.firstName}
+                        {clock}
                       </button>
-                    </li>
-                  ))}
-                </ul>
-                <button
-                  type="button"
-                  onClick={() => void createClient(true)}
-                  className={btnSoft}
-                >
-                  Es otra persona: crear igual
-                </button>
-              </>
+                    );
+                  })}
+                </div>
+              </div>
             ) : null}
           </div>
-        ) : null}
-        <label className={labelClass}>
-          Hora
-          <input
-            type="time"
-            value={time}
-            onChange={(e) => setTime(e.target.value)}
-            className={inputClass}
-          />
-        </label>
-        {slots.length ? (
-          <div>
-            <div className="mb-2 text-[13px] font-medium text-muted">
-              Horarios libres
-            </div>
-            <div className="flex flex-wrap gap-1.5">
-              {slots.slice(0, 16).map((slot) => {
-                const clock = formatClock(slot.startAt, timezone);
-                return (
-                  <button
-                    key={slot.startAt}
-                    type="button"
-                    onClick={() => setTime(clock)}
-                    className={cn(
-                      'rounded-md px-3 py-1 text-sm',
-                      clock === time
-                        ? 'bg-accent text-white'
-                        : 'bg-canvas text-ink',
-                    )}
-                  >
-                    {clock}
-                  </button>
-                );
-              })}
-            </div>
+          <div className="grid content-start gap-3">
+            <label className={labelClass}>
+              Buscar cliente
+              <input
+                value={clientQuery}
+                onChange={(e) => setClientQuery(e.target.value)}
+                placeholder="Nombre o teléfono"
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Cliente
+              <select
+                value={clientId}
+                onChange={(e) => setClientId(e.target.value)}
+                className={inputClass}
+              >
+                {visibleClients.map((row) => (
+                  <option key={row.id} value={row.id}>
+                    {row.lastName}, {row.firstName} · {row.phone}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <button
+              type="button"
+              className={btnGhost}
+              onClick={() => {
+                setNewClient((current) => !current);
+                setClientMatches([]);
+              }}
+            >
+              {newClient ? 'Usar cliente existente' : 'Nuevo cliente'}
+            </button>
+            {newClient ? (
+              <div className="grid gap-2 rounded-lg bg-canvas p-3">
+                <input
+                  placeholder="Nombre"
+                  value={newFirstName}
+                  onChange={(e) => setNewFirstName(e.target.value)}
+                  className={inputClass}
+                />
+                <input
+                  placeholder="Apellido"
+                  value={newLastName}
+                  onChange={(e) => setNewLastName(e.target.value)}
+                  className={inputClass}
+                />
+                <input
+                  placeholder="Teléfono"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  className={inputClass}
+                />
+                <button
+                  type="button"
+                  onClick={() => void createClient(false)}
+                  disabled={!newFirstName || !newLastName || !newPhone}
+                  className={btnPrimary}
+                >
+                  Crear cliente
+                </button>
+                {clientMatches.length > 0 ? (
+                  <>
+                    <ul className="m-0 list-disc pl-5 text-sm">
+                      {clientMatches.map((row) => (
+                        <li key={row.id}>
+                          <button
+                            type="button"
+                            className="underline decoration-line underline-offset-4"
+                            onClick={() => {
+                              setClientId(row.id);
+                              setClients((rows) =>
+                                rows.some((item) => item.id === row.id)
+                                  ? rows
+                                  : [row, ...rows],
+                              );
+                              setNewClient(false);
+                              setClientMatches([]);
+                              setError(null);
+                            }}
+                          >
+                            Usar {row.lastName}, {row.firstName}
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={() => void createClient(true)}
+                      className={btnSoft}
+                    >
+                      Es otra persona: crear igual
+                    </button>
+                  </>
+                ) : null}
+              </div>
+            ) : null}
+            <label className={labelClass}>
+              Observaciones
+              <textarea
+                value={observations}
+                onChange={(e) => setObservations(e.target.value)}
+                rows={3}
+                className={textareaClass}
+              />
+            </label>
+          </div>
+        </div>
+        {error ? (
+          <div className="px-6 pb-2">
+            <Alert>{error}</Alert>
           </div>
         ) : null}
-        <label className={labelClass}>
-          Observaciones
-          <textarea
-            value={observations}
-            onChange={(e) => setObservations(e.target.value)}
-            rows={2}
-            className={textareaClass}
-          />
-        </label>
-        {error ? <Alert>{error}</Alert> : null}
-        <div className="sticky bottom-0 -mx-5 mt-1 flex justify-end gap-2 border-t border-line bg-paper px-5 py-3">
+        <div className="flex justify-end gap-2 border-t border-line px-6 py-3">
           <button type="button" onClick={onClose} className={btnGhost}>
             Cancelar
           </button>
@@ -385,6 +397,6 @@ export function NewAppointmentForm({
           </button>
         </div>
       </form>
-    </aside>
+    </div>
   );
 }

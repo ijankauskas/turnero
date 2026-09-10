@@ -453,6 +453,22 @@ export default function AgendaPage() {
           ) : null}
         </div>
 
+        {selected ? (
+          <AppointmentPanel
+            appointment={
+              appointments.find((row) => row.id === selected.id) ?? selected
+            }
+            timeZone={timezone}
+            canWrite={canWrite}
+            onClose={() => setSelected(null)}
+            onChanged={() => {
+              void load();
+            }}
+          />
+        ) : (
+          <div />
+        )}
+
         {create && canWrite ? (
           <NewAppointmentForm
             key={`${create.date ?? date}-${create.professionalId ?? ''}-${create.time ?? ''}`}
@@ -468,21 +484,7 @@ export default function AgendaPage() {
               void load();
             }}
           />
-        ) : selected ? (
-          <AppointmentPanel
-            appointment={
-              appointments.find((row) => row.id === selected.id) ?? selected
-            }
-            timeZone={timezone}
-            canWrite={canWrite}
-            onClose={() => setSelected(null)}
-            onChanged={() => {
-              void load();
-            }}
-          />
-        ) : (
-          <div />
-        )}
+        ) : null}
       </section>
     </AppShell>
   );
