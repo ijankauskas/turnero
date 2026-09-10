@@ -236,8 +236,8 @@ export default function ConfigProfesionalesPage() {
               <h2 className="mt-0 text-lg font-semibold">
                 Ficha de {current.displayName}
               </h2>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <label className={labelClass}>
+              <div className="flex flex-wrap items-end gap-3">
+                <label className={cn(labelClass, 'min-w-0 flex-1')}>
                   Nombre en agenda
                   <input
                     value={displayName}
@@ -251,7 +251,7 @@ export default function ConfigProfesionalesPage() {
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    className="mt-1.5 h-10 w-16 cursor-pointer rounded-lg border border-line bg-white"
+                    className="mt-1.5 block h-[38px] w-[38px] cursor-pointer rounded-lg border border-line bg-white p-[3px]"
                   />
                 </label>
               </div>
