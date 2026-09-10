@@ -23,6 +23,7 @@ export class ServicesService {
         name: dto.name,
         durationMinutes: dto.durationMinutes,
         basePrice: dto.basePrice,
+        openPrice: dto.openPrice ?? false,
       },
     });
     return serializeService(row);
@@ -43,6 +44,7 @@ export class ServicesService {
         durationMinutes: dto.durationMinutes,
         basePrice: dto.basePrice,
         active: dto.active,
+        openPrice: dto.openPrice,
       },
     });
     return serializeService(row);
@@ -54,6 +56,7 @@ function serializeService(row: {
   name: string;
   durationMinutes: number;
   basePrice: { toNumber?: () => number } | number;
+  openPrice: boolean;
   active: boolean;
 }) {
   return {
@@ -61,6 +64,7 @@ function serializeService(row: {
     name: row.name,
     durationMinutes: row.durationMinutes,
     basePrice: money(row.basePrice),
+    openPrice: row.openPrice,
     active: row.active,
   };
 }

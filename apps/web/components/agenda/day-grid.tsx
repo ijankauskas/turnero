@@ -122,6 +122,9 @@ export function DayGrid({
                     <div className="truncate opacity-80">
                       {item.client.firstName} {item.client.lastName}
                     </div>
+                    {item.pricePending ? (
+                      <div className="truncate opacity-80">A definir</div>
+                    ) : null}
                   </article>
                 );
               })}

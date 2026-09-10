@@ -9,7 +9,7 @@ import {
   zonedLocalToUtc,
 } from '../../lib/datetime';
 import type { Appointment } from './types';
-import { STATUS_LABEL } from './types';
+import { appointmentPriceLabel, STATUS_LABEL } from './types';
 import {
   Alert,
   btnDanger,
@@ -53,6 +53,9 @@ export function AppointmentPanel({
     appointment.internalNotes ?? '',
   );
   const [time, setTime] = useState(formatClock(appointment.startAt, timeZone));
+  const [priceInput, setPriceInput] = useState(
+    appointment.pricePending ? '' : String(appointment.price),
+  );
 
   useEffect(() => {
     setWa(null);
@@ -60,6 +63,9 @@ export function AppointmentPanel({
     setObservations(appointment.observations ?? '');
     setInternalNotes(appointment.internalNotes ?? '');
     setTime(formatClock(appointment.startAt, timeZone));
+    setPriceInput(
+      appointment.pricePending ? '' : String(appointment.price),
+    );
     void apiJson<{ url: string }>(
       `/appointments/${appointment.id}/whatsapp-link`,
     ).then((row) => setWa(row.url));
@@ -118,6 +124,20 @@ export function AppointmentPanel({
           observations: observations || null,
           internalNotes: internalNotes || null,
         }),
+      });
+      onChanged();
+    } catch (err) {
+      setError((err as Error).message);
+    }
+  }
+
+  async function savePrice(event: FormEvent) {
+    event.preventDefault();
+    setError(null);
+    try {
+      await apiJson(`/appointments/${appointment.id}/price`, {
+        method: 'POST',
+        body: JSON.stringify({ price: Number(priceInput) }),
       });
       onChanged();
     } catch (err) {
@@ -198,9 +218,37 @@ export function AppointmentPanel({
         Estado:{' '}
         <strong>{STATUS_LABEL[appointment.status] ?? appointment.status}</strong>
       </p>
-      <p className="text-lg font-semibold tabular-nums">
-        ${appointment.price.toLocaleString('es-AR')}
+      <p className="mt-2 text-lg font-semibold tabular-nums">
+        {appointmentPriceLabel(appointment)}
       </p>
+      {appointment.pricePending ? (
+        <p className="mt-1 text-sm text-muted">
+          El profesional te dice qué se hizo; cargá el importe y confirmá.
+        </p>
+      ) : null}
+      {canWrite && appointment.status !== 'CANCELADO' && !appointment.paid ? (
+        <form
+          onSubmit={savePrice}
+          className="mt-3 flex flex-wrap items-end gap-2"
+        >
+          <label className={labelClass}>
+            Importe
+            <input
+              type="number"
+              min={1}
+              step="1"
+              required
+              value={priceInput}
+              onChange={(e) => setPriceInput(e.target.value)}
+              placeholder="0"
+              className={cn(inputClass, 'w-32')}
+            />
+          </label>
+          <button type="submit" className={btnPrimary}>
+            {appointment.pricePending ? 'Confirmar precio' : 'Actualizar precio'}
+          </button>
+        </form>
+      ) : null}
       {canWrite ? (
         <form onSubmit={saveNotes} className="mt-4 grid gap-3">
           <label className={labelClass}>
@@ -251,11 +299,17 @@ export function AppointmentPanel({
             <input
               type="checkbox"
               checked={appointment.paid}
+              disabled={appointment.pricePending}
               onChange={(e) => void setPaid(e.target.checked)}
               className="size-4 rounded border-line"
             />
             Pagado
           </label>
+          {appointment.pricePending ? (
+            <p className="text-xs text-muted">
+              Definí el precio antes de marcarlo pagado.
+            </p>
+          ) : null}
           {NEXT[appointment.status]?.map((status) => (
             <button
               key={status}

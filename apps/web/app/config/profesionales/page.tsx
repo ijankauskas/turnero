@@ -40,6 +40,7 @@ type CatalogService = {
   name: string;
   durationMinutes: number;
   basePrice: number;
+  openPrice?: boolean;
   active: boolean;
 };
 type Offer = {
@@ -130,7 +131,7 @@ export default function ConfigProfesionalesPage() {
       }
       copy[service.id] = current[service.id] ?? {
         serviceId: service.id,
-        price: service.basePrice,
+        price: service.openPrice ? 0 : service.basePrice,
         remunerationType: 'PERCENT',
         remunerationValue: 40,
         active: true,
@@ -306,7 +307,10 @@ export default function ConfigProfesionalesPage() {
                             />
                           </td>
                           <td className={tdClass}>
-                            <input
+                            {service.openPrice ? (
+                              <span className="text-sm text-muted">A definir</span>
+                            ) : (
+                              <input
                               type="number"
                               disabled={!offer}
                               value={offer?.price ?? service.basePrice}
@@ -321,6 +325,7 @@ export default function ConfigProfesionalesPage() {
                               }
                               className={cn(inputClass, 'mt-0 w-24')}
                             />
+                            )}
                           </td>
                           <td className={tdClass}>
                             <select

@@ -232,6 +232,7 @@ export class ProfessionalsService {
       serviceName: row.service.name,
       durationMinutes: row.service.durationMinutes,
       price: money(row.price),
+      openPrice: row.service.openPrice,
       remunerationType: row.remunerationType,
       remunerationValue: money(row.remunerationValue),
       active: row.active,

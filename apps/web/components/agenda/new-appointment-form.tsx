@@ -56,6 +56,7 @@ export function NewAppointmentForm({
   const [newLastName, setNewLastName] = useState('');
   const [newPhone, setNewPhone] = useState('');
   const [clientMatches, setClientMatches] = useState<Client[]>([]);
+  const selectedOffer = offers.find((row) => row.serviceId === serviceId);
 
   useEffect(() => {
     void Promise.all([
@@ -231,12 +232,20 @@ export function NewAppointmentForm({
               >
                 {offers.map((row) => (
                   <option key={row.serviceId} value={row.serviceId}>
-                    {row.serviceName} ({row.durationMinutes} min) · $
-                    {row.price.toLocaleString('es-AR')}
+                    {row.serviceName} ({row.durationMinutes} min) ·{' '}
+                    {row.openPrice
+                      ? 'A definir'
+                      : `$${row.price.toLocaleString('es-AR')}`}
                   </option>
                 ))}
               </select>
             </label>
+            {selectedOffer?.openPrice ? (
+              <p className="text-sm text-muted">
+                El precio se carga después, cuando el profesional te dice qué se
+                hizo.
+              </p>
+            ) : null}
             <label className={labelClass}>
               Hora
               <input

@@ -684,4 +684,148 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       ),
     ).toBe(true);
   });
+
+  it('books open-price services and lets recepción set the amount', async () => {
+    const unas = await request(app.getHttpServer())
+      .post('/api/v1/services')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Uñas abiertas',
+        durationMinutes: 45,
+        basePrice: 0,
+        openPrice: true,
+      });
+    expect(unas.status).toBe(201);
+    expect(unas.body.openPrice).toBe(true);
+
+    const matrix = await request(app.getHttpServer())
+      .put(`/api/v1/professionals/${juanProId}/services`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        items: [
+          {
+            serviceId: corteId,
+            remunerationType: 'PERCENT',
+            remunerationValue: 40,
+          },
+          {
+            serviceId: unas.body.id,
+            remunerationType: 'PERCENT',
+            remunerationValue: 40,
+          },
+        ],
+      });
+    expect(matrix.status).toBe(200);
+    expect(
+      matrix.body.find((row: { serviceId: string }) => row.serviceId === unas.body.id)
+        .openPrice,
+    ).toBe(true);
+
+    const startAt = zonedLocalToUtc(
+      '2026-09-10',
+      '10:00',
+      'America/Argentina/Buenos_Aires',
+    ).toISOString();
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: centroId,
+        professionalId: juanProId,
+        clientId,
+        serviceId: unas.body.id,
+        startAt,
+        paid: true,
+      });
+    expect(created.status).toBe(409);
+    expect(created.body.message).toBe(
+      'Definí el precio del servicio antes de marcarlo pagado',
+    );
+
+    const booked = await request(app.getHttpServer())
+      .post('/api/v1/appointments')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        branchId: centroId,
+        professionalId: juanProId,
+        clientId,
+        serviceId: unas.body.id,
+        startAt,
+      });
+    expect(booked.status).toBe(201);
+    expect(booked.body.price).toBe(0);
+    expect(booked.body.pricePending).toBe(true);
+
+    const moved = await request(app.getHttpServer())
+      .patch(`/api/v1/appointments/${booked.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        startAt: zonedLocalToUtc(
+          '2026-09-10',
+          '11:00',
+          'America/Argentina/Buenos_Aires',
+        ).toISOString(),
+      });
+    expect(moved.status).toBe(200);
+    expect(moved.body.pricePending).toBe(true);
+    expect(moved.body.price).toBe(0);
+
+    const paidEarly = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/paid`)
+      .set('Authorization', `Bearer ${luciaToken}`)
+      .send({ paid: true });
+    expect(paidEarly.status).toBe(409);
+
+    const juanPrice = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/price`)
+      .set('Authorization', `Bearer ${juanToken}`)
+      .send({ price: 18000 });
+    expect(juanPrice.status).toBe(403);
+
+    const attended = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/status`)
+      .set('Authorization', `Bearer ${luciaToken}`)
+      .send({ status: 'ATENDIDO' });
+    expect(attended.status).toBe(201);
+
+    const pendingReport = await request(app.getHttpServer())
+      .get('/api/v1/reports/professionals?from=2026-09-10&to=2026-09-10')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const pendingJuan = pendingReport.body.items.find(
+      (row: { professionalId: string }) => row.professionalId === juanProId,
+    );
+    expect(pendingJuan.turnos).toBe(1);
+    expect(pendingJuan.facturado).toBe(0);
+    expect(pendingJuan.aPagar).toBe(0);
+
+    const priced = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/price`)
+      .set('Authorization', `Bearer ${luciaToken}`)
+      .send({ price: 18000 });
+    expect(priced.status).toBe(201);
+    expect(priced.body.price).toBe(18000);
+    expect(priced.body.pricePending).toBe(false);
+
+    const report = await request(app.getHttpServer())
+      .get('/api/v1/reports/professionals?from=2026-09-10&to=2026-09-10')
+      .set('Authorization', `Bearer ${adminToken}`);
+    const juanRow = report.body.items.find(
+      (row: { professionalId: string }) => row.professionalId === juanProId,
+    );
+    expect(juanRow.facturado).toBe(18000);
+    expect(juanRow.aPagar).toBe(7200);
+
+    const paid = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/paid`)
+      .set('Authorization', `Bearer ${luciaToken}`)
+      .send({ paid: true });
+    expect(paid.status).toBe(201);
+    expect(paid.body.paid).toBe(true);
+
+    const changePaid = await request(app.getHttpServer())
+      .post(`/api/v1/appointments/${booked.body.id}/price`)
+      .set('Authorization', `Bearer ${luciaToken}`)
+      .send({ price: 20000 });
+    expect(changePaid.status).toBe(409);
+  });
 });

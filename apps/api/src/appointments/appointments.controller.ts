@@ -16,6 +16,7 @@ import {
   CancelAppointmentDto,
   CreateAppointmentDto,
   PaidAppointmentDto,
+  SetPriceAppointmentDto,
   StatusAppointmentDto,
   UpdateAppointmentDto,
 } from './dto/appointment.dto';
@@ -120,5 +121,15 @@ export class AppointmentsController {
     @Body() dto: PaidAppointmentDto,
   ) {
     return this.appointments.setPaid(user, id, dto.paid);
+  }
+
+  @Post(':id/price')
+  @Roles('ADMINISTRADOR', 'ENCARGADO', 'RECEPCION')
+  price(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: SetPriceAppointmentDto,
+  ) {
+    return this.appointments.setPrice(user, id, dto.price);
   }
 }

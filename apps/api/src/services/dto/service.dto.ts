@@ -21,6 +21,10 @@ export class CreateServiceDto {
   @IsNumber()
   @Min(0)
   basePrice!: number;
+
+  @IsOptional()
+  @IsBoolean()
+  openPrice?: boolean;
 }
 
 export class UpdateServiceDto {
@@ -43,4 +47,8 @@ export class UpdateServiceDto {
   @IsOptional()
   @IsBoolean()
   active?: boolean;
+
+  @IsOptional()
+  @IsBoolean()
+  openPrice?: boolean;
 }

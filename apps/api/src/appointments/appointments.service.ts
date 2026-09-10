@@ -85,6 +85,11 @@ export class AppointmentsService {
       startAt: new Date(dto.startAt),
     });
     await this.assertNoOverlap(user, payload.professionalId, payload.startAt, payload.endAt);
+    if (dto.paid && payload.pricePending) {
+      throw new ConflictException(
+        'Definí el precio del servicio antes de marcarlo pagado',
+      );
+    }
     const db = this.tenants.forCompany(user.companyId);
     const created = await db.appointment.create({
       data: {
@@ -117,6 +122,7 @@ export class AppointmentsService {
       dto.professionalId ||
       dto.serviceId ||
       dto.branchId;
+    const applyCatalog = Boolean(dto.professionalId || dto.serviceId);
     const snapshot = await this.buildSnapshot(user, {
       branchId,
       professionalId,
@@ -124,11 +130,26 @@ export class AppointmentsService {
       serviceId,
       startAt,
     });
+    const durationMinutes = applyCatalog
+      ? snapshot.durationMinutes
+      : current.durationMinutes;
+    const endAt = applyCatalog
+      ? snapshot.endAt
+      : new Date(startAt.getTime() + durationMinutes * 60_000);
+    const price = applyCatalog ? snapshot.price : current.price;
+    const pricePending = applyCatalog
+      ? snapshot.pricePending
+      : current.pricePending;
+    if ((dto.paid ?? current.paid) && pricePending) {
+      throw new ConflictException(
+        'Definí el precio del servicio antes de marcarlo pagado',
+      );
+    }
     await this.assertNoOverlap(
       user,
       snapshot.professionalId,
       snapshot.startAt,
-      snapshot.endAt,
+      endAt,
       id,
     );
     const db = this.tenants.forCompany(user.companyId);
@@ -136,6 +157,17 @@ export class AppointmentsService {
       where: { id },
       data: {
         ...snapshot,
+        durationMinutes,
+        endAt,
+        price,
+        pricePending,
+        ...(applyCatalog
+          ? {}
+          : {
+              serviceNameSnapshot: current.serviceNameSnapshot,
+              remunerationTypeSnapshot: current.remunerationTypeSnapshot,
+              remunerationValueSnapshot: current.remunerationValueSnapshot,
+            }),
         paid: dto.paid,
         observations: dto.observations,
         internalNotes: dto.internalNotes,
@@ -197,6 +229,11 @@ export class AppointmentsService {
   async setPaid(user: AuthenticatedUser, id: string, paid: boolean) {
     this.assertWriter(user);
     const current = await this.loadVisible(user, id);
+    if (paid && current.pricePending) {
+      throw new ConflictException(
+        'Definí el precio del servicio antes de marcarlo pagado',
+      );
+    }
     const db = this.tenants.forCompany(user.companyId);
     if (paid && !current.paid) {
       await db.payment.create({
@@ -214,6 +251,27 @@ export class AppointmentsService {
       data: { paid },
       include: appointmentInclude,
     });
+    return serializeAppointment(updated);
+  }
+
+  async setPrice(user: AuthenticatedUser, id: string, price: number) {
+    this.assertWriter(user);
+    const current = await this.loadVisible(user, id);
+    if (current.status === 'CANCELADO') {
+      throw new ConflictException(
+        'No se puede cargar precio en un turno cancelado',
+      );
+    }
+    if (current.paid) {
+      throw new ConflictException('Desmarcá pagado para cambiar el precio');
+    }
+    const updated = await this.tenants
+      .forCompany(user.companyId)
+      .appointment.update({
+        where: { id },
+        data: { price, pricePending: false },
+        include: appointmentInclude,
+      });
     return serializeAppointment(updated);
   }
 
@@ -429,7 +487,8 @@ export class AppointmentsService {
       startAt: input.startAt,
       endAt,
       durationMinutes: duration,
-      price: money(offer.price),
+      price: offer.service.openPrice ? 0 : money(offer.price),
+      pricePending: offer.service.openPrice,
       serviceNameSnapshot: offer.service.name,
       remunerationTypeSnapshot: offer.remunerationType,
       remunerationValueSnapshot: money(offer.remunerationValue),
@@ -500,6 +559,7 @@ function serializeAppointment(row: {
   endAt: Date;
   durationMinutes: number;
   price: { toNumber?: () => number } | number;
+  pricePending: boolean;
   serviceNameSnapshot: string;
   status: AppointmentStatus;
   paid: boolean;
@@ -527,6 +587,7 @@ function serializeAppointment(row: {
     endAt: row.endAt.toISOString(),
     durationMinutes: row.durationMinutes,
     price: money(row.price),
+    pricePending: row.pricePending,
     serviceNameSnapshot: row.serviceNameSnapshot,
     status: row.status,
     paid: row.paid,

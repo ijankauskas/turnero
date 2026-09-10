@@ -4,9 +4,11 @@ import {
   IsBoolean,
   IsDateString,
   IsIn,
+  IsNumber,
   IsOptional,
   IsString,
   IsUUID,
+  Min,
 } from 'class-validator';
 
 export class CreateAppointmentDto {
@@ -87,4 +89,11 @@ export class PaidAppointmentDto {
   @Type(() => Boolean)
   @IsBoolean()
   paid!: boolean;
+}
+
+export class SetPriceAppointmentDto {
+  @Type(() => Number)
+  @IsNumber()
+  @Min(1)
+  price!: number;
 }

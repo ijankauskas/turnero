@@ -17,6 +17,7 @@ export type Appointment = {
   status: string;
   paid: boolean;
   price: number;
+  pricePending: boolean;
   observations: string | null;
   internalNotes: string | null;
   cancelReason: string | null;
@@ -50,6 +51,7 @@ export type ServiceOffer = {
   serviceName: string;
   durationMinutes: number;
   price: number;
+  openPrice?: boolean;
   active?: boolean;
 };
 
@@ -95,3 +97,13 @@ export const VISIBLE_STATUSES = new Set([
   'ATENDIDO',
   'NO_ASISTIO',
 ]);
+
+export function appointmentPriceLabel(item: {
+  price: number;
+  pricePending?: boolean;
+}) {
+  if (item.pricePending) {
+    return 'A definir';
+  }
+  return `$${item.price.toLocaleString('es-AR')}`;
+}

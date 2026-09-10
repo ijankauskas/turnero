@@ -359,7 +359,8 @@ Servicio simple. “Uñas + Pestañas” es **otro servicio**, no un compuesto, 
 | company_id | uuid | |
 | name | text | |
 | duration_minutes | int | 30, 45, 90… |
-| base_price | numeric(12,2) | |
+| base_price | numeric(12,2) | referencia; se ignora al agendar si `open_price` |
+| open_price | bool | default false. El valor se define en el turno, después del servicio |
 | active | bool | |
 
 ### 4.8 ProfessionalService (qué hace, a qué precio, cómo se le paga)
@@ -414,7 +415,8 @@ Al elegir María → Uñas + Pestañas el sistema ya sabe: duración 45 min (del
 | start_at | timestamptz | |
 | end_at | timestamptz | start + duration |
 | duration_minutes | int | snapshot |
-| price | numeric(12,2) | snapshot |
+| price | numeric(12,2) | snapshot; 0 si todavía no se definió |
+| price_pending | bool | true si el servicio es `open_price` y recepción aún no cargó el importe |
 | service_name_snapshot | text | |
 | status | enum | ver 4.11 |
 | paid | bool | default false |
@@ -512,17 +514,19 @@ Appointment → Company, Branch, Professional, Client, Service
 2. Sucursal: Admin elige; Encargado/Recepción = la suya.
 3. Profesional: solo los asignados a esa sucursal **y** con horario ese weekday en esa sucursal.
 4. Servicio: solo los `ProfessionalService.active` de ese profesional.
-5. `duration_minutes` ← Service. `price` ← ProfessionalService.price. `end_at` ← start + duration.
+5. `duration_minutes` ← Service. Si el servicio tiene `open_price`, el turno nace con `price = 0` y `price_pending = true`. Si no, `price` ← ProfessionalService.price. `end_at` ← start + duration.
 6. `start_at` y `end_at` deben caer **dentro de un bloque** de `WorkSchedule` de ese profesional en esa sucursal y weekday (un turno puede cubrir varios slots visuales, no puede empezar antes de las 09:00 si el bloque es 09–18, ni terminar después de las 18:00).
 7. No puede solaparse con otro turno del mismo profesional cuyo status **no** sea `CANCELADO`.
 8. Cliente existente o alta nueva (con warning de teléfono).
-9. Status inicial: `RESERVADO`. `paid = false` salvo que recepción lo marque en el mismo alta.
+9. Status inicial: `RESERVADO`. `paid = false` salvo que recepción lo marque en el mismo alta. No se puede marcar pagado si `price_pending`.
 10. Encolar email `CREATED` si el cliente tiene email.
 
 ### 5.2 Edición de turno
 
 - Se pueden cambiar fecha/hora, profesional, servicio, cliente, observaciones, pagado, estado (según transiciones).
 - Si cambian profesional o servicio, se recalculan duración y precio **salvo** que el usuario haya editado el precio a mano (flag `price_overridden` opcional; en MVP se recalcula siempre al cambiar el servicio/profesional y se puede ajustar el monto después).
+- Recepción / encargado / admin cargan o ajustan el importe con `POST /appointments/:id/price`. El profesional no. Si el turno ya está pagado, hay que desmarcar pagado antes de cambiar el precio.
+- Servicios con `open_price` (uñas, tratamientos cuyo valor depende de lo que se haga): se agenda sin precio; el profesional le dice a recepción qué hizo y recepción carga el importe. Recién ahí se puede marcar pagado.
 - Si cambia la ventana horaria: mismas validaciones de horario y solapamiento (el propio turno se excluye).
 - Email `UPDATED` si cambian fecha, hora, profesional, servicio o sucursal.
 
@@ -610,7 +614,7 @@ Ver sección 9. Botón **+ Nuevo turno**. Click en un bloque abre el panel de de
 └─────────────────────────────────┘
 ```
 
-Alta: sucursal → profesional → servicio (duración/precio autocompletados) → fecha/hora → cliente (buscar o crear) → observaciones → guardar.
+Alta: sucursal → profesional → servicio (duración y precio, o “a definir”) → fecha/hora → cliente (buscar o crear) → observaciones → guardar.
 
 ### 6.3 Clientes
 
@@ -618,7 +622,7 @@ Listado + búsqueda por teléfono y nombre. Ficha: datos, historial de turnos (l
 
 ### 6.4 Prestaciones (servicios)
 
-ABM de servicios. Desde cada servicio, o desde el profesional: matriz de precios y comisión por profesional.
+ABM de servicios. Desde cada servicio, o desde el profesional: matriz de precios y comisión por profesional. Un servicio puede marcarse “precio a definir después del servicio” (el importe lo carga recepción cuando el profesional le dice qué se hizo).
 
 ### 6.5 Profesionales y horarios (Configuración)
 
@@ -706,7 +710,8 @@ Prefijo: `/api/v1`. JSON. Errores: `{ statusCode, error, message, details? }`.
 | PATCH `/appointments/:id` | edición |
 | POST `/appointments/:id/cancel` | estado CANCELADO |
 | POST `/appointments/:id/status` | `{ status }` |
-| POST `/appointments/:id/paid` | `{ paid: boolean }` |
+| POST `/appointments/:id/paid` | `{ paid: boolean }` — 409 si `price_pending` |
+| POST `/appointments/:id/price` | `{ price }` — Admin / Encargado / Recepción; 409 si está pagado o cancelado |
 | GET `/appointments/availability` | `professionalId`, `branchId`, `date`, `serviceId` → huecos |
 
 **Recorte obligatorio en GET list:**
@@ -847,8 +852,8 @@ Sucursal: (todas | Centro | Norte)
 | Columna | Cálculo |
 | --- | --- |
 | Turnos | cantidad de appointments `ATENDIDO` con `start_at` en el rango |
-| Facturado | `sum(price)` de esos turnos |
-| A pagar | `sum` de comisión snapshot de esos turnos |
+| Facturado | `sum(price)` de esos turnos con precio definido (`price_pending = false`) |
+| A pagar | `sum` de comisión snapshot de esos mismos turnos (un pendiente a $0 no genera comisión fija) |
 
 Cancelados y no asistió **no** entran. `paid` no filtra el reporte (se cobró o no es un tema de caja, no de “a pagar” al profesional, salvo que más adelante se agregue un filtro).
 

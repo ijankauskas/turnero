@@ -44,9 +44,11 @@ export class ReportsService {
         facturado: 0,
         aPagar: 0,
       };
-      const price = money(row.price);
-      const commission =
-        row.remunerationTypeSnapshot === 'PERCENT'
+      const pending = row.pricePending;
+      const price = pending ? 0 : money(row.price);
+      const commission = pending
+        ? 0
+        : row.remunerationTypeSnapshot === 'PERCENT'
           ? price * (money(row.remunerationValueSnapshot) / 100)
           : money(row.remunerationValueSnapshot);
       current.turnos += 1;
@@ -77,7 +79,8 @@ export class ReportsService {
         ...(branchId ? { branchId } : {}),
       },
     });
-    const facturado = rows.reduce((sum, row) => sum + money(row.price), 0);
+    const priced = rows.filter((row) => !row.pricePending);
+    const facturado = priced.reduce((sum, row) => sum + money(row.price), 0);
     const occupied = rows.reduce((sum, row) => sum + row.durationMinutes, 0);
     const weekday = weekdayIsoInZone(range.from, company.timezone);
     const blocks = await db.workSchedule.findMany({
@@ -98,7 +101,7 @@ export class ReportsService {
       date: query.date,
       count: rows.length,
       facturado,
-      averageTicket: rows.length ? facturado / rows.length : 0,
+      averageTicket: priced.length ? facturado / priced.length : 0,
       occupiedMinutes: occupied,
       scheduledMinutes,
       occupancyPercent: occupancyPercent(occupied, scheduledMinutes),

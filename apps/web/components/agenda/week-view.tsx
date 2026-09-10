@@ -109,6 +109,7 @@ export function WeekView({
                   style={apptSurface(pro.color)}
                 >
                   {item.serviceNameSnapshot}
+                  {item.pricePending ? ' · A definir' : ''}
                 </button>
               ))}
             </div>

@@ -113,15 +113,27 @@ async function upsertProfessional({ companyId, user, displayName, color, branchI
   return professional;
 }
 
-async function upsertService(companyId, name, durationMinutes, basePrice) {
+async function upsertService(
+  companyId,
+  name,
+  durationMinutes,
+  basePrice,
+  openPrice = false,
+) {
   const existing = await prisma.service.findFirst({
     where: { companyId, name, deletedAt: null },
   });
   if (existing) {
+    if (existing.openPrice !== openPrice) {
+      return prisma.service.update({
+        where: { id: existing.id },
+        data: { openPrice },
+      });
+    }
     return existing;
   }
   return prisma.service.create({
-    data: { companyId, name, durationMinutes, basePrice },
+    data: { companyId, name, durationMinutes, basePrice, openPrice },
   });
 }
 
@@ -334,7 +346,7 @@ async function main() {
 
   const corte = await upsertService(studio.company.id, 'Corte', 45, 12000);
   const color = await upsertService(studio.company.id, 'Color', 90, 25000);
-  const unas = await upsertService(studio.company.id, 'Uñas', 30, 10000);
+  const unas = await upsertService(studio.company.id, 'Uñas', 30, 0, true);
   const pestanas = await upsertService(studio.company.id, 'Pestañas', 30, 10000);
   const combo = await upsertService(
     studio.company.id,
@@ -369,7 +381,7 @@ async function main() {
     studio.company.id,
     juanPro.id,
     unas,
-    10000,
+    0,
     'PERCENT',
     40,
   );
