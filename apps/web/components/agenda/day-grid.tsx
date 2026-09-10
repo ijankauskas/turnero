@@ -51,7 +51,7 @@ export function DayGrid({
       className={cn(cardClass, 'overflow-hidden')}
       style={{
         display: 'grid',
-        gridTemplateColumns: `64px repeat(${Math.max(columns.length, 1)}, minmax(150px, 1fr))`,
+        gridTemplateColumns: `72px repeat(${Math.max(columns.length, 1)}, minmax(150px, 1fr))`,
       }}
     >
       <div />
@@ -68,8 +68,8 @@ export function DayGrid({
         {Array.from({ length: END_HOUR - START_HOUR + 1 }, (_, i) => (
           <div
             key={i}
-            className="absolute text-[11px] text-muted"
-            style={{ top: i * 60 * PX_PER_MINUTE }}
+            className="absolute left-2 text-[11px] tabular-nums text-muted"
+            style={{ top: i * 60 * PX_PER_MINUTE, transform: 'translateY(-50%)' }}
           >
             {String(START_HOUR + i).padStart(2, '0')}:00
           </div>

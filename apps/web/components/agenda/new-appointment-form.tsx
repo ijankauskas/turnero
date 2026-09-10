@@ -1,21 +1,22 @@
 'use client';
 
-import { FormEvent, useEffect, useState } from 'react';
-import { apiJson } from '../../lib/session';
-import { apiItems, apiPage } from '../../lib/paging';
+import { FormEvent, useEffect, useMemo, useState } from 'react';
 import { formatClock, formatLongDate, zonedLocalToUtc } from '../../lib/datetime';
-import type { Branch, Client, Professional, ServiceOffer } from './types';
+import { apiItems } from '../../lib/paging';
+import { apiJson } from '../../lib/session';
+import { ClientCombobox } from '../client-combobox';
+import { Select } from '../select';
 import {
   Alert,
   btnGhost,
   btnPrimary,
-  btnSoft,
   cardClass,
   cn,
   inputClass,
   labelClass,
   textareaClass,
 } from '../ui';
+import type { Branch, Client, Professional, ServiceOffer } from './types';
 
 type Slot = { startAt: string; endAt: string };
 
@@ -39,7 +40,6 @@ export function NewAppointmentForm({
   onCreated: () => void;
 }) {
   const [branches, setBranches] = useState<Branch[]>([]);
-  const [clients, setClients] = useState<Client[]>([]);
   const [offers, setOffers] = useState<ServiceOffer[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
   const [branchId, setBranchId] = useState(initialBranchId ?? '');
@@ -47,57 +47,37 @@ export function NewAppointmentForm({
     initialProfessionalId || professionals[0]?.id || '',
   );
   const [clientId, setClientId] = useState('');
+  const [clientLabel, setClientLabel] = useState('');
   const [serviceId, setServiceId] = useState('');
   const [time, setTime] = useState(initialTime ?? '10:00');
   const [observations, setObservations] = useState('');
-  const [clientQuery, setClientQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
-  const [newClient, setNewClient] = useState(false);
-  const [newFirstName, setNewFirstName] = useState('');
-  const [newLastName, setNewLastName] = useState('');
-  const [newPhone, setNewPhone] = useState('');
-  const [clientMatches, setClientMatches] = useState<Client[]>([]);
+  const [saving, setSaving] = useState(false);
+
   const selectedOffer = offers.find((row) => row.serviceId === serviceId);
+  const professionalName =
+    professionals.find((row) => row.id === professionalId)?.displayName ?? '';
 
   useEffect(() => {
-    void apiItems<Branch>('/branches').then((b) => {
-      setBranches(b);
-      setBranchId((current) => current || initialBranchId || b[0]?.id || '');
+    void apiItems<Branch>('/branches').then((rows) => {
+      setBranches(rows);
+      setBranchId((current) => current || initialBranchId || rows[0]?.id || '');
     });
   }, [initialBranchId]);
 
   useEffect(() => {
-    const handle = window.setTimeout(() => {
-      void apiPage<Client>('/clients', {
-        query: clientQuery,
-        page: 1,
-        pageSize: 20,
-      }).then((data) => {
-        const active = data.items.filter((row) => row.active !== false);
-        setClients(active);
-        setClientId((current) =>
-          active.some((row) => row.id === current)
-            ? current
-            : (active[0]?.id ?? ''),
-        );
-      });
-    }, 250);
-    return () => window.clearTimeout(handle);
-  }, [clientQuery]);
-
-  useEffect(() => {
     if (!professionalId) return;
-    void apiJson<ServiceOffer[]>(`/professionals/${professionalId}/services`).then(
-      (rows) => {
-        const active = rows.filter((row) => row.active !== false);
-        setOffers(active);
-        setServiceId((current) =>
-          active.some((row) => row.serviceId === current)
-            ? current
-            : (active[0]?.serviceId ?? ''),
-        );
-      },
-    );
+    void apiJson<ServiceOffer[]>(
+      `/professionals/${professionalId}/services`,
+    ).then((rows) => {
+      const active = rows.filter((row) => row.active !== false);
+      setOffers(active);
+      setServiceId((current) =>
+        active.some((row) => row.serviceId === current)
+          ? current
+          : (active[0]?.serviceId ?? ''),
+      );
+    });
   }, [professionalId]);
 
   useEffect(() => {
@@ -112,47 +92,39 @@ export function NewAppointmentForm({
       .catch(() => setSlots([]));
   }, [professionalId, branchId, serviceId, date]);
 
-  const visibleClients = clients;
-
-  async function createClient(forceCreate = false) {
-    setError(null);
-    try {
-      const created = await apiJson<Client>('/clients', {
-        method: 'POST',
-        body: JSON.stringify({
-          firstName: newFirstName,
-          lastName: newLastName,
-          phone: newPhone,
-          forceCreate,
-        }),
-      });
-      setClients((rows) => [created, ...rows]);
-      setClientId(created.id);
-      setClientQuery(`${created.lastName} ${created.firstName}`);
-      setNewClient(false);
-      setClientMatches([]);
-      setNewFirstName('');
-      setNewLastName('');
-      setNewPhone('');
-    } catch (err) {
-      const typed = err as Error & {
-        status?: number;
-        body?: { matches?: Client[]; error?: string };
-      };
-      if (typed.status === 409 && typed.body?.error === 'DUPLICATE_PHONE') {
-        setClientMatches(typed.body.matches ?? []);
-        setError(
-          'Ya hay un cliente con ese teléfono. Elegilo o confirmá si es otra persona.',
-        );
-        return;
-      }
-      setError(typed.message);
-    }
-  }
+  const branchOptions = useMemo(
+    () => branches.map((row) => ({ value: row.id, label: row.name })),
+    [branches],
+  );
+  const professionalOptions = useMemo(
+    () =>
+      professionals.map((row) => ({
+        value: row.id,
+        label: row.displayName,
+      })),
+    [professionals],
+  );
+  const serviceOptions = useMemo(
+    () =>
+      offers.map((row) => ({
+        value: row.serviceId,
+        label: `${row.serviceName} (${row.durationMinutes} min) · ${
+          row.openPrice
+            ? 'A definir'
+            : `$${row.price.toLocaleString('es-AR')}`
+        }`,
+      })),
+    [offers],
+  );
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setError(null);
+    if (!clientId) {
+      setError('Elegí un cliente.');
+      return;
+    }
+    setSaving(true);
     try {
       await apiJson('/appointments', {
         method: 'POST',
@@ -168,252 +140,146 @@ export function NewAppointmentForm({
       onCreated();
     } catch (err) {
       setError((err as Error).message);
+    } finally {
+      setSaving(false);
     }
   }
 
-  const dateLabel = formatLongDate(date, timezone);
-  const professionalName =
-    professionals.find((row) => row.id === professionalId)?.displayName ?? '';
-
   return (
-    <div
-      className="fixed inset-0 z-40 grid place-items-center bg-ink/40 p-4"
-      onClick={onClose}
+    <aside
+      className={cn(
+        cardClass,
+        'sticky top-4 w-full max-w-[360px] self-start p-5',
+      )}
     >
-      <form
-        onSubmit={onSubmit}
-        onClick={(event) => event.stopPropagation()}
-        className={cn(
-          cardClass,
-          'grid max-h-[90vh] w-full max-w-3xl grid-rows-[auto_1fr_auto] overflow-hidden',
-        )}
-      >
-        <header className="flex items-start justify-between gap-3 border-b border-line px-6 py-4">
-          <div>
-            <h2 className="m-0 text-xl font-semibold">Nuevo turno</h2>
-            <p className="mt-1 text-sm capitalize text-muted">
-              {dateLabel}
-              {time ? ` · ${time}` : ''}
-              {professionalName ? ` · ${professionalName}` : ''}
-            </p>
-          </div>
-          <button type="button" onClick={onClose} className={btnGhost}>
-            Cerrar
-          </button>
-        </header>
-        <div className="grid gap-6 overflow-auto px-6 py-5 md:grid-cols-2">
-          <div className="grid content-start gap-3">
-            <label className={labelClass}>
-              Sucursal
-              <select
-                value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className={inputClass}
-              >
-                {branches.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={labelClass}>
-              Profesional
-              <select
-                value={professionalId}
-                onChange={(e) => setProfessionalId(e.target.value)}
-                className={inputClass}
-              >
-                {professionals.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.displayName}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label className={labelClass}>
-              Servicio
-              <select
-                value={serviceId}
-                onChange={(e) => setServiceId(e.target.value)}
-                className={inputClass}
-              >
-                {offers.map((row) => (
-                  <option key={row.serviceId} value={row.serviceId}>
-                    {row.serviceName} ({row.durationMinutes} min) ·{' '}
-                    {row.openPrice
-                      ? 'A definir'
-                      : `$${row.price.toLocaleString('es-AR')}`}
-                  </option>
-                ))}
-              </select>
-            </label>
-            {selectedOffer?.openPrice ? (
-              <p className="text-sm text-muted">
-                El precio se carga después, cuando el profesional te dice qué se
-                hizo.
-              </p>
-            ) : null}
-            <label className={labelClass}>
-              Hora
-              <input
-                type="time"
-                value={time}
-                onChange={(e) => setTime(e.target.value)}
-                className={inputClass}
-              />
-            </label>
-            {slots.length ? (
-              <div>
-                <div className="mb-2 text-[13px] font-medium text-muted">
-                  Horarios libres
-                </div>
-                <div className="flex flex-wrap gap-1.5">
-                  {slots.slice(0, 16).map((slot) => {
-                    const clock = formatClock(slot.startAt, timezone);
-                    return (
-                      <button
-                        key={slot.startAt}
-                        type="button"
-                        onClick={() => setTime(clock)}
-                        className={cn(
-                          'rounded-md px-3 py-1 text-sm',
-                          clock === time
-                            ? 'bg-accent text-white'
-                            : 'bg-canvas text-ink',
-                        )}
-                      >
-                        {clock}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : null}
-          </div>
-          <div className="grid content-start gap-3">
-            <label className={labelClass}>
-              Buscar cliente
-              <input
-                value={clientQuery}
-                onChange={(e) => setClientQuery(e.target.value)}
-                placeholder="Nombre o teléfono"
-                className={inputClass}
-              />
-            </label>
-            <label className={labelClass}>
-              Cliente
-              <select
-                value={clientId}
-                onChange={(e) => setClientId(e.target.value)}
-                className={inputClass}
-              >
-                {visibleClients.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.lastName}, {row.firstName} · {row.phone}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <button
-              type="button"
-              className={btnGhost}
-              onClick={() => {
-                setNewClient((current) => !current);
-                setClientMatches([]);
-              }}
-            >
-              {newClient ? 'Usar cliente existente' : 'Nuevo cliente'}
-            </button>
-            {newClient ? (
-              <div className="grid gap-2 rounded-lg bg-canvas p-3">
-                <input
-                  placeholder="Nombre"
-                  value={newFirstName}
-                  onChange={(e) => setNewFirstName(e.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="Apellido"
-                  value={newLastName}
-                  onChange={(e) => setNewLastName(e.target.value)}
-                  className={inputClass}
-                />
-                <input
-                  placeholder="Teléfono"
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  className={inputClass}
-                />
-                <button
-                  type="button"
-                  onClick={() => void createClient(false)}
-                  disabled={!newFirstName || !newLastName || !newPhone}
-                  className={btnPrimary}
-                >
-                  Crear cliente
-                </button>
-                {clientMatches.length > 0 ? (
-                  <>
-                    <ul className="m-0 list-disc pl-5 text-sm">
-                      {clientMatches.map((row) => (
-                        <li key={row.id}>
-                          <button
-                            type="button"
-                            className="underline decoration-line underline-offset-4"
-                            onClick={() => {
-                              setClientId(row.id);
-                              setClients((rows) =>
-                                rows.some((item) => item.id === row.id)
-                                  ? rows
-                                  : [row, ...rows],
-                              );
-                              setNewClient(false);
-                              setClientMatches([]);
-                              setError(null);
-                            }}
-                          >
-                            Usar {row.lastName}, {row.firstName}
-                          </button>
-                        </li>
-                      ))}
-                    </ul>
-                    <button
-                      type="button"
-                      onClick={() => void createClient(true)}
-                      className={btnSoft}
-                    >
-                      Es otra persona: crear igual
-                    </button>
-                  </>
-                ) : null}
-              </div>
-            ) : null}
-            <label className={labelClass}>
-              Observaciones
-              <textarea
-                value={observations}
-                onChange={(e) => setObservations(e.target.value)}
-                rows={3}
-                className={textareaClass}
-              />
-            </label>
-          </div>
+      <header className="mb-3 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="m-0 text-lg font-semibold leading-tight">
+            Nuevo turno
+          </h2>
+          <p className="mt-1 text-sm capitalize text-muted">
+            {formatLongDate(date, timezone)}
+            {time ? ` · ${time}` : ''}
+            {professionalName ? ` · ${professionalName}` : ''}
+          </p>
         </div>
-        {error ? (
-          <div className="px-6 pb-2">
-            <Alert>{error}</Alert>
+        <button type="button" onClick={onClose} className={btnGhost}>
+          Cerrar
+        </button>
+      </header>
+
+      <form onSubmit={onSubmit} className="grid gap-3">
+        <label className={labelClass}>
+          Sucursal
+          <Select
+            value={branchId}
+            onChange={setBranchId}
+            options={branchOptions}
+            placeholder="Elegí sucursal"
+          />
+        </label>
+        <label className={labelClass}>
+          Profesional
+          <Select
+            value={professionalId}
+            onChange={setProfessionalId}
+            options={professionalOptions}
+            placeholder="Elegí profesional"
+          />
+        </label>
+        <label className={labelClass}>
+          Servicio
+          <Select
+            value={serviceId}
+            onChange={setServiceId}
+            options={serviceOptions}
+            placeholder="Elegí servicio"
+          />
+        </label>
+        {selectedOffer?.openPrice ? (
+          <p className="text-sm text-muted">
+            El precio se carga después, cuando el profesional te dice qué se
+            hizo.
+          </p>
+        ) : null}
+        <label className={labelClass}>
+          Hora
+          <input
+            type="time"
+            value={time}
+            onChange={(e) => setTime(e.target.value)}
+            className={inputClass}
+            required
+          />
+        </label>
+        {slots.length ? (
+          <div>
+            <div className="mb-2 text-[13px] font-medium text-muted">
+              Horarios libres
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {slots.slice(0, 16).map((slot) => {
+                const clock = formatClock(slot.startAt, timezone);
+                return (
+                  <button
+                    key={slot.startAt}
+                    type="button"
+                    onClick={() => setTime(clock)}
+                    className={cn(
+                      'rounded-md px-3 py-1 text-sm',
+                      clock === time
+                        ? 'bg-accent text-white'
+                        : 'bg-canvas text-ink',
+                    )}
+                  >
+                    {clock}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ) : null}
-        <div className="flex justify-end gap-2 border-t border-line px-6 py-3">
+
+        <div>
+          <span className={labelClass}>Cliente</span>
+          <ClientCombobox
+            value={clientId}
+            selectedLabel={clientLabel}
+            onChange={(client: Client | null) => {
+              if (!client) {
+                setClientId('');
+                setClientLabel('');
+                return;
+              }
+              setClientId(client.id);
+              setClientLabel(
+                `${client.lastName}, ${client.firstName} · ${client.phone}`,
+              );
+            }}
+          />
+        </div>
+
+        <label className={labelClass}>
+          Observaciones
+          <textarea
+            value={observations}
+            onChange={(e) => setObservations(e.target.value)}
+            rows={3}
+            className={textareaClass}
+          />
+        </label>
+
+        {error ? <Alert>{error}</Alert> : null}
+
+        <div className="mt-1 flex flex-wrap gap-2">
+          <button type="submit" className={btnPrimary} disabled={saving}>
+            Guardar
+          </button>
           <button type="button" onClick={onClose} className={btnGhost}>
             Cancelar
           </button>
-          <button type="submit" className={btnPrimary}>
-            Guardar
-          </button>
         </div>
       </form>
-    </div>
+    </aside>
   );
 }

@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { apiJson } from '../../../lib/session';
 import { apiItems } from '../../../lib/paging';
+import { Select } from '../../../components/select';
 import {
   Alert,
   btnDanger,
@@ -329,25 +330,24 @@ export default function ConfigProfesionalesPage() {
                             )}
                           </td>
                           <td className={tdClass}>
-                            <select
+                            <Select
                               disabled={!offer}
                               value={offer?.remunerationType ?? 'PERCENT'}
-                              onChange={(e) =>
+                              onChange={(v) =>
                                 setOffers((currentOffers) => ({
                                   ...currentOffers,
                                   [service.id]: {
                                     ...currentOffers[service.id],
-                                    remunerationType: e.target.value as
-                                      | 'PERCENT'
-                                      | 'FIXED',
+                                    remunerationType: v as 'PERCENT' | 'FIXED',
                                   },
                                 }))
                               }
-                              className={cn(inputClass, 'mt-0 w-24')}
-                            >
-                              <option value="PERCENT">%</option>
-                              <option value="FIXED">Fijo</option>
-                            </select>
+                              className="mt-0 w-24"
+                              options={[
+                                { value: 'PERCENT', label: '%' },
+                                { value: 'FIXED', label: 'Fijo' },
+                              ]}
+                            />
                           </td>
                           <td className={tdClass}>
                             <input
@@ -382,32 +382,26 @@ export default function ConfigProfesionalesPage() {
                   key={`${block.weekday}-${index}`}
                   className="mb-2 flex flex-wrap items-center gap-2"
                 >
-                  <select
-                    value={block.weekday}
-                    onChange={(e) =>
-                      updateBlock(index, { weekday: Number(e.target.value) })
+                  <Select
+                    value={String(block.weekday)}
+                    onChange={(weekday) =>
+                      updateBlock(index, { weekday: Number(weekday) })
                     }
-                    className={cn(controlClass, 'mt-0')}
-                  >
-                    {DAYS.map((day, weekday) => (
-                      <option key={day} value={weekday}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    className="mt-0"
+                    options={DAYS.map((day, weekday) => ({
+                      value: String(weekday),
+                      label: day,
+                    }))}
+                  />
+                  <Select
                     value={block.branchId}
-                    onChange={(e) =>
-                      updateBlock(index, { branchId: e.target.value })
-                    }
-                    className={cn(controlClass, 'mt-0')}
-                  >
-                    {branches.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(branchId) => updateBlock(index, { branchId })}
+                    className="mt-0"
+                    options={branches.map((row) => ({
+                      value: row.id,
+                      label: row.name,
+                    }))}
+                  />
                   <input
                     type="time"
                     value={block.startTime}

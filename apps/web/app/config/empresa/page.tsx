@@ -74,7 +74,7 @@ export default function ConfigEmpresaPage() {
         {error ? <Alert>{error}</Alert> : null}
         {saved ? (
           <p className="mb-4 text-sm text-muted">
-            Guardado. Recargá para ver el branding en el menú.
+            Guardado. El color principal pinta botones y acentos; el del menú cambia el fondo lateral.
           </p>
         ) : null}
         {row ? (
@@ -111,10 +111,10 @@ export default function ConfigEmpresaPage() {
               />
             </label>
             <label className={labelClass}>
-              Color de fondo
+              Color del menú
               <input
                 type="color"
-                value={row.secondaryColor || '#f6f4f1'}
+                value={row.secondaryColor || '#0b1220'}
                 onChange={(e) =>
                   setRow({ ...row, secondaryColor: e.target.value })
                 }
