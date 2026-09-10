@@ -2,7 +2,8 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
-import { apiJson } from '../../../lib/session';
+import { ImageUploadField } from '../../../components/image-upload-field';
+import { apiJson, apiUpload } from '../../../lib/session';
 import {
   Alert,
   btnPrimary,
@@ -74,7 +75,9 @@ export default function ConfigEmpresaPage() {
         {error ? <Alert>{error}</Alert> : null}
         {saved ? (
           <p className="mb-4 text-sm text-muted">
-            Guardado. El color principal pinta botones y acentos; el del menú cambia el fondo lateral.
+            Guardado. El color principal pinta botones y acentos; el del menú
+            cambia el fondo lateral. Si cambiaste el logo, recargá para verlo
+            en el menú.
           </p>
         ) : null}
         {row ? (
@@ -90,23 +93,23 @@ export default function ConfigEmpresaPage() {
                 className={inputClass}
               />
             </label>
-            <label className={labelClass}>
-              Logo (URL)
-              <input
-                value={row.logoUrl ?? ''}
-                onChange={(e) =>
-                  setRow({ ...row, logoUrl: e.target.value || null })
-                }
-                placeholder="https://…"
-                className={inputClass}
-              />
-            </label>
+            <ImageUploadField
+              label="Logo"
+              imageUrl={row.logoUrl}
+              onFile={async (file) => {
+                const next = await apiUpload<Company>('/company/logo', file);
+                setRow(next);
+                setSaved(true);
+              }}
+            />
             <label className={labelClass}>
               Color principal
               <input
                 type="color"
                 value={row.primaryColor || '#1a1a1a'}
-                onChange={(e) => setRow({ ...row, primaryColor: e.target.value })}
+                onChange={(e) =>
+                  setRow({ ...row, primaryColor: e.target.value })
+                }
                 className="mt-1.5 h-10 w-16 cursor-pointer rounded-lg border border-line bg-white"
               />
             </label>
@@ -126,7 +129,9 @@ export default function ConfigEmpresaPage() {
               <input
                 type="email"
                 value={row.contactEmail}
-                onChange={(e) => setRow({ ...row, contactEmail: e.target.value })}
+                onChange={(e) =>
+                  setRow({ ...row, contactEmail: e.target.value })
+                }
                 className={inputClass}
               />
             </label>

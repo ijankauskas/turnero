@@ -61,7 +61,17 @@ export function DayGrid({
           className="border-l border-line px-2 py-3 text-center text-sm font-semibold"
           style={{ color: pro.color }}
         >
-          {pro.displayName}
+          <div className="flex flex-col items-center gap-1.5">
+            {pro.avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={pro.avatarUrl}
+                alt=""
+                className="size-8 rounded-full object-cover"
+              />
+            ) : null}
+            <span>{pro.displayName}</span>
+          </div>
         </div>
       ))}
       <div className="relative" style={{ height }}>

@@ -5,6 +5,7 @@ export type Professional = {
   displayName: string;
   color: string;
   active?: boolean;
+  avatarUrl?: string | null;
   branches?: Array<{ id: string; name: string }>;
 };
 

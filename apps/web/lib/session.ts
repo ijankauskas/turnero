@@ -68,7 +68,11 @@ async function refreshSession(): Promise<boolean> {
 
 export async function apiFetch(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
-  headers.set('Content-Type', 'application/json');
+  const isFormData =
+    typeof FormData !== 'undefined' && init.body instanceof FormData;
+  if (!isFormData && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json');
+  }
   const session = readSession();
   if (session?.accessToken) {
     headers.set('Authorization', `Bearer ${session.accessToken}`);
@@ -83,7 +87,9 @@ export async function apiFetch(path: string, init: RequestInit = {}) {
     return response;
   }
   const retryHeaders = new Headers(init.headers);
-  retryHeaders.set('Content-Type', 'application/json');
+  if (!isFormData && !retryHeaders.has('Content-Type')) {
+    retryHeaders.set('Content-Type', 'application/json');
+  }
   const next = readSession();
   if (next?.accessToken) {
     retryHeaders.set('Authorization', `Bearer ${next.accessToken}`);
@@ -111,4 +117,10 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
     throw error;
   }
   return body;
+}
+
+export async function apiUpload<T>(path: string, file: File): Promise<T> {
+  const body = new FormData();
+  body.append('file', file);
+  return apiJson<T>(path, { method: 'POST', body });
 }
