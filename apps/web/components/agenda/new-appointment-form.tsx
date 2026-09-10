@@ -5,7 +5,7 @@ import { formatClock, formatLongDate, zonedLocalToUtc } from '../../lib/datetime
 import { apiItems } from '../../lib/paging';
 import { apiJson } from '../../lib/session';
 import { ClientCombobox } from '../client-combobox';
-import { Select } from '../select';
+import { SearchableSelect } from '../searchable-select';
 import {
   Alert,
   btnGhost,
@@ -171,29 +171,29 @@ export function NewAppointmentForm({
       <form onSubmit={onSubmit} className="grid gap-3">
         <label className={labelClass}>
           Sucursal
-          <Select
+          <SearchableSelect
             value={branchId}
             onChange={setBranchId}
             options={branchOptions}
-            placeholder="Elegí sucursal"
+            placeholder="Buscar sucursal…"
           />
         </label>
         <label className={labelClass}>
           Profesional
-          <Select
+          <SearchableSelect
             value={professionalId}
             onChange={setProfessionalId}
             options={professionalOptions}
-            placeholder="Elegí profesional"
+            placeholder="Buscar profesional…"
           />
         </label>
         <label className={labelClass}>
           Servicio
-          <Select
+          <SearchableSelect
             value={serviceId}
             onChange={setServiceId}
             options={serviceOptions}
-            placeholder="Elegí servicio"
+            placeholder="Buscar servicio…"
           />
         </label>
         {selectedOffer?.openPrice ? (
