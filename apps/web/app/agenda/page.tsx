@@ -238,10 +238,19 @@ export default function AgendaPage() {
                       }}
                       className="size-4 rounded border-line"
                     />
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: pro.color }}
-                    />
+                    {pro.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pro.avatarUrl}
+                        alt=""
+                        className="size-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: pro.color }}
+                      />
+                    )}
                     <span>{pro.displayName}</span>
                   </label>
                 ))}
