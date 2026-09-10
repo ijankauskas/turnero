@@ -8,6 +8,7 @@ import type { UserRole } from '@turnero/shared';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { PasswordService } from '../auth/password.service';
 import { hiddenNotFound } from '../common/http';
+import { paginated, parsePage } from '../common/pagination';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
 import type { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 
@@ -32,12 +33,34 @@ export class UsersService {
     private readonly passwords: PasswordService,
   ) {}
 
-  list(user: AuthenticatedUser) {
-    return this.tenants.forCompany(user.companyId).user.findMany({
-      where: { deletedAt: null },
-      select: USER_SELECT,
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    });
+  async list(
+    user: AuthenticatedUser,
+    query?: string,
+    page?: string,
+    pageSize?: string,
+  ) {
+    const db = this.tenants.forCompany(user.companyId);
+    const paging = parsePage(page, pageSize);
+    const where: Prisma.UserWhereInput = { deletedAt: null };
+    const needle = (query ?? '').trim();
+    if (needle) {
+      where.OR = [
+        { firstName: { contains: needle, mode: 'insensitive' } },
+        { lastName: { contains: needle, mode: 'insensitive' } },
+        { email: { contains: needle, mode: 'insensitive' } },
+      ];
+    }
+    const [total, rows] = await Promise.all([
+      db.user.count({ where }),
+      db.user.findMany({
+        where,
+        select: USER_SELECT,
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ]);
+    return paginated(rows, total, paging.page, paging.pageSize);
   }
 
   async create(actor: AuthenticatedUser, dto: CreateUserDto) {

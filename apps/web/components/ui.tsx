@@ -90,6 +90,86 @@ export function Alert({ children }: { children: ReactNode }) {
   );
 }
 
+export function Modal({
+  title,
+  onClose,
+  children,
+  wide,
+}: {
+  title: string;
+  onClose: () => void;
+  children: ReactNode;
+  wide?: boolean;
+}) {
+  return (
+    <div
+      className="fixed inset-0 z-40 grid place-items-center bg-ink/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={title}
+        onClick={(event) => event.stopPropagation()}
+        className={cn(
+          cardClass,
+          'max-h-[90vh] w-full overflow-auto',
+          wide ? 'max-w-2xl' : 'max-w-md',
+        )}
+      >
+        <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
+          <h2 className="m-0 text-lg font-semibold">{title}</h2>
+          <button type="button" onClick={onClose} className={btnGhost}>
+            Cerrar
+          </button>
+        </header>
+        <div className="px-5 py-4">{children}</div>
+      </div>
+    </div>
+  );
+}
+
+export function Pager({
+  page,
+  pageCount,
+  total,
+  onPage,
+}: {
+  page: number;
+  pageCount: number;
+  total: number;
+  onPage: (page: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 border-t border-line px-4 py-3 text-sm text-muted">
+      <span>
+        {total} resultado{total === 1 ? '' : 's'}
+      </span>
+      <div className="flex items-center gap-2">
+        <button
+          type="button"
+          className={btnGhost}
+          disabled={page <= 1}
+          onClick={() => onPage(page - 1)}
+        >
+          Anterior
+        </button>
+        <span>
+          Página {page} de {pageCount}
+        </span>
+        <button
+          type="button"
+          className={btnGhost}
+          disabled={page >= pageCount}
+          onClick={() => onPage(page + 1)}
+        >
+          Siguiente
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function apptSurface(hex: string | null | undefined): CSSProperties {
   const color = hex || '#2563eb';
   return {

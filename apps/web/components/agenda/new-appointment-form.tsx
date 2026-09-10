@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { apiJson } from '../../lib/session';
+import { apiItems, apiPage } from '../../lib/paging';
 import { formatClock, formatLongDate, zonedLocalToUtc } from '../../lib/datetime';
 import type { Branch, Client, Professional, ServiceOffer } from './types';
 import {
@@ -59,16 +60,30 @@ export function NewAppointmentForm({
   const selectedOffer = offers.find((row) => row.serviceId === serviceId);
 
   useEffect(() => {
-    void Promise.all([
-      apiJson<Branch[]>('/branches'),
-      apiJson<Client[]>('/clients'),
-    ]).then(([b, c]) => {
+    void apiItems<Branch>('/branches').then((b) => {
       setBranches(b);
-      setClients(c.filter((row) => row.active !== false));
       setBranchId((current) => current || initialBranchId || b[0]?.id || '');
-      setClientId((current) => current || c[0]?.id || '');
     });
   }, [initialBranchId]);
+
+  useEffect(() => {
+    const handle = window.setTimeout(() => {
+      void apiPage<Client>('/clients', {
+        query: clientQuery,
+        page: 1,
+        pageSize: 20,
+      }).then((data) => {
+        const active = data.items.filter((row) => row.active !== false);
+        setClients(active);
+        setClientId((current) =>
+          active.some((row) => row.id === current)
+            ? current
+            : (active[0]?.id ?? ''),
+        );
+      });
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [clientQuery]);
 
   useEffect(() => {
     if (!professionalId) return;
@@ -97,14 +112,7 @@ export function NewAppointmentForm({
       .catch(() => setSlots([]));
   }, [professionalId, branchId, serviceId, date]);
 
-  const visibleClients = clients.filter((row) => {
-    const q = clientQuery.trim().toLowerCase();
-    if (!q) return true;
-    return (
-      `${row.lastName} ${row.firstName}`.toLowerCase().includes(q) ||
-      row.phone.includes(q)
-    );
-  });
+  const visibleClients = clients;
 
   async function createClient(forceCreate = false) {
     setError(null);

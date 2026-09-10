@@ -1,6 +1,8 @@
 import { ConflictException, Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { hiddenNotFound } from '../common/http';
+import { paginated, parsePage } from '../common/pagination';
 import { digitsOnly, phonesMatch } from '../common/phone';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
 import type { CreateClientDto, UpdateClientDto } from './dto/client.dto';
@@ -9,30 +11,25 @@ import type { CreateClientDto, UpdateClientDto } from './dto/client.dto';
 export class ClientsService {
   constructor(private readonly tenants: TenantPrismaFactory) {}
 
-  async list(user: AuthenticatedUser, query?: string) {
+  async list(
+    user: AuthenticatedUser,
+    query?: string,
+    page?: string,
+    pageSize?: string,
+  ) {
     const db = this.tenants.forCompany(user.companyId);
-    const where: Record<string, unknown> = { deletedAt: null };
-    if (user.role === 'PROFESIONAL' && user.professionalId) {
-      where.appointments = {
-        some: { professionalId: user.professionalId },
-      };
-    }
-    const rows = await db.client.findMany({
-      where,
-      orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
-    });
-    const needle = (query ?? '').trim().toLowerCase();
-    if (!needle) {
-      return rows;
-    }
-    const digits = digitsOnly(needle);
-    return rows.filter((row) => {
-      const name = `${row.firstName} ${row.lastName}`.toLowerCase();
-      return (
-        name.includes(needle) ||
-        (digits.length > 0 && digitsOnly(row.phone).includes(digits))
-      );
-    });
+    const paging = parsePage(page, pageSize);
+    const where = this.listWhere(user, query);
+    const [total, rows] = await Promise.all([
+      db.client.count({ where }),
+      db.client.findMany({
+        where,
+        orderBy: [{ lastName: 'asc' }, { firstName: 'asc' }],
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ]);
+    return paginated(rows, total, paging.page, paging.pageSize);
   }
 
   async get(user: AuthenticatedUser, id: string) {
@@ -67,10 +64,17 @@ export class ClientsService {
 
   async create(user: AuthenticatedUser, dto: CreateClientDto) {
     const db = this.tenants.forCompany(user.companyId);
-    const existing = await db.client.findMany({
-      where: { deletedAt: null },
-    });
-    const matches = existing.filter((row) => phonesMatch(row.phone, dto.phone));
+    const digits = digitsOnly(dto.phone);
+    const suffix = digits.slice(-8) || digits;
+    const candidates = suffix
+      ? await db.client.findMany({
+          where: { deletedAt: null, phone: { contains: suffix } },
+          take: 25,
+        })
+      : [];
+    const matches = candidates.filter((row) =>
+      phonesMatch(row.phone, dto.phone),
+    );
     if (matches.length > 0 && !dto.forceCreate) {
       throw new ConflictException({
         error: 'DUPLICATE_PHONE',
@@ -105,5 +109,35 @@ export class ClientsService {
       where: { id },
       data: dto,
     });
+  }
+
+  private listWhere(
+    user: AuthenticatedUser,
+    query?: string,
+  ): Prisma.ClientWhereInput {
+    const where: Prisma.ClientWhereInput = { deletedAt: null };
+    if (user.role === 'PROFESIONAL' && user.professionalId) {
+      where.appointments = {
+        some: { professionalId: user.professionalId },
+      };
+    }
+    const needle = (query ?? '').trim();
+    if (!needle) {
+      return where;
+    }
+    const tokens = needle.toLowerCase().split(/\s+/).filter(Boolean);
+    where.AND = tokens.map((token) => {
+      const digits = digitsOnly(token);
+      const or: Prisma.ClientWhereInput[] = [
+        { firstName: { contains: token, mode: 'insensitive' } },
+        { lastName: { contains: token, mode: 'insensitive' } },
+        { email: { contains: token, mode: 'insensitive' } },
+      ];
+      if (digits) {
+        or.push({ phone: { contains: digits } });
+      }
+      return { OR: or };
+    });
+    return where;
   }
 }

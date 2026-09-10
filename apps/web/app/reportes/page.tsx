@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
 import { monthEnd, monthStart, todayInZone } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
+import { apiItems } from '../../lib/paging';
 import type { MeResponse } from '../../lib/types';
 import {
   Alert,
@@ -63,7 +64,7 @@ export default function ReportesPage() {
       setFrom(nextFrom);
       setTo(nextTo);
     }
-    const branchRows = await apiJson<Branch[]>('/branches');
+    const branchRows = await apiItems<Branch>('/branches');
     setBranches(branchRows);
     const qs = nextBranch ? `&branchId=${nextBranch}` : '';
     if (me.user.role === 'ADMINISTRADOR' || me.user.role === 'ENCARGADO') {

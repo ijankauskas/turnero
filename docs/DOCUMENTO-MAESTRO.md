@@ -618,11 +618,11 @@ Alta: sucursal → profesional → servicio (duración y precio, o “a definir�
 
 ### 6.3 Clientes
 
-Listado + búsqueda por teléfono y nombre. Ficha: datos, historial de turnos (los que el rol pueda ver), notas.
+Listado en tabla, paginado, con búsqueda por teléfono y nombre. El alta va en **Nuevo cliente**. Ficha: datos, historial de turnos (los que el rol pueda ver), notas.
 
 ### 6.4 Prestaciones (servicios)
 
-ABM de servicios. Desde cada servicio, o desde el profesional: matriz de precios y comisión por profesional. Un servicio puede marcarse “precio a definir después del servicio” (el importe lo carga recepción cuando el profesional le dice qué se hizo).
+ABM de servicios en tabla paginada, con **Nueva prestación**. Desde cada servicio, o desde el profesional: matriz de precios y comisión por profesional. Un servicio puede marcarse “precio a definir después del servicio” (el importe lo carga recepción cuando el profesional le dice qué se hizo).
 
 ### 6.5 Profesionales y horarios (Configuración)
 
@@ -630,7 +630,7 @@ ABM profesional, color, sucursales, servicios que realiza, grilla semanal (día 
 
 ### 6.6 Sucursales y usuarios (Admin)
 
-ABM sucursales. ABM usuarios con rol y alcance.
+ABM sucursales y usuarios en tabla paginada, con botón de alta. Usuarios con rol y alcance.
 
 ### 6.7 Reportes
 
@@ -689,14 +689,14 @@ Prefijo: `/api/v1`. JSON. Errores: `{ statusCode, error, message, details? }`.
 | PATCH `/professionals/:id` | Admin |
 | PUT `/professionals/:id/branches` | Admin |
 | GET/PUT `/professionals/:id/schedule` | Admin; GET también Encargado (su sucursal) |
-| GET/POST `/services` | Admin escribe; GET staff |
+| GET/POST `/services` | Admin escribe; GET staff; `page` / `pageSize` / `query` |
 | GET/PUT `/professionals/:id/services` | matriz precio + comisión |
 
 ### 7.5 Clientes
 
 | Método | Path | Notas |
 | --- | --- | --- |
-| GET `/clients?query=` | búsqueda nombre/teléfono; Profesional: solo clientes con turno propio |
+| GET `/clients?query=&page=&pageSize=` | búsqueda nombre/teléfono; paginado; Profesional: solo clientes con turno propio |
 | POST `/clients` | `forceCreate` para duplicado |
 | GET/PATCH `/clients/:id` | 404 si el rol no puede verlo |
 

@@ -13,8 +13,10 @@ export class ClientsController {
   list(
     @CurrentUser() user: AuthenticatedUser,
     @Query('query') query?: string,
+    @Query('page') page?: string,
+    @Query('pageSize') pageSize?: string,
   ) {
-    return this.clients.list(user, query);
+    return this.clients.list(user, query, page, pageSize);
   }
 
   @Post()

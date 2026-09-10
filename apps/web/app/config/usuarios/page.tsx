@@ -3,16 +3,23 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { ROLE_LABEL } from '../../../lib/labels';
+import { apiItems, apiPage } from '../../../lib/paging';
 import { apiJson } from '../../../lib/session';
 import {
   Alert,
   btnDanger,
+  btnGhost,
   btnPrimary,
   cardClass,
   cn,
   inputClass,
+  labelClass,
+  Modal,
   Page,
   PageTitle,
+  Pager,
+  tdClass,
+  thClass,
 } from '../../../components/ui';
 
 type User = {
@@ -29,6 +36,12 @@ export default function ConfigUsuariosPage() {
   const [rows, setRows] = useState<User[]>([]);
   const [branches, setBranches] = useState<Branch[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [total, setTotal] = useState(0);
+  const [open, setOpen] = useState(false);
   const [form, setForm] = useState({
     email: '',
     password: '',
@@ -38,12 +51,19 @@ export default function ConfigUsuariosPage() {
     branchId: '',
   });
 
-  async function load() {
+  async function load(nextPage = page, nextSearch = search) {
     const [users, suc] = await Promise.all([
-      apiJson<User[]>('/users'),
-      apiJson<Branch[]>('/branches'),
+      apiPage<User>('/users', {
+        query: nextSearch,
+        page: nextPage,
+        pageSize: 20,
+      }),
+      apiItems<Branch>('/branches'),
     ]);
-    setRows(users);
+    setRows(users.items);
+    setTotal(users.total);
+    setPage(users.page);
+    setPageCount(users.pageCount);
     setBranches(suc);
     setForm((current) => ({
       ...current,
@@ -52,11 +72,12 @@ export default function ConfigUsuariosPage() {
   }
 
   useEffect(() => {
-    void load().catch((err: Error) => setError(err.message));
-  }, []);
+    void load(page, search).catch((err: Error) => setError(err.message));
+  }, [page, search]);
 
   async function onSubmit(event: FormEvent) {
     event.preventDefault();
+    setError(null);
     try {
       await apiJson('/users', {
         method: 'POST',
@@ -70,7 +91,19 @@ export default function ConfigUsuariosPage() {
               : form.branchId,
         }),
       });
-      await load();
+      setForm({
+        email: '',
+        password: '',
+        firstName: '',
+        lastName: '',
+        role: 'RECEPCION',
+        branchId: branches[0]?.id || '',
+      });
+      setOpen(false);
+      setPage(1);
+      setSearch('');
+      setQuery('');
+      await load(1, '');
     } catch (err) {
       setError((err as Error).message);
     }
@@ -97,90 +130,183 @@ export default function ConfigUsuariosPage() {
             ← Configuración
           </a>
         </p>
-        <PageTitle kicker="Accesos">Usuarios</PageTitle>
-        {error ? <Alert>{error}</Alert> : null}
-        <ul className="m-0 mb-8 grid list-none gap-2 p-0">
-          {rows.map((row) => (
-            <li
-              key={row.id}
-              className={cn(cardClass, 'flex flex-wrap items-center justify-between gap-3 p-4')}
+        <PageTitle
+          kicker="Accesos"
+          actions={
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => {
+                setError(null);
+                setOpen(true);
+              }}
             >
-              <span className="text-sm">
-                {row.lastName}, {row.firstName} · {row.email} ·{' '}
-                {ROLE_LABEL[row.role] ?? row.role}
-                {row.active ? '' : ' (inactivo)'}
-              </span>
-              {row.active ? (
-                <button
-                  type="button"
-                  onClick={() => void deactivate(row.id)}
-                  className={btnDanger}
-                >
-                  Desactivar
-                </button>
-              ) : null}
-            </li>
-          ))}
-        </ul>
-        <form onSubmit={onSubmit} className={cn(cardClass, 'grid max-w-md gap-3 p-5')}>
+              Nuevo usuario
+            </button>
+          }
+        >
+          Usuarios
+        </PageTitle>
+        <div className="mb-5 flex flex-wrap gap-2">
           <input
-            placeholder="Nombre"
-            value={form.firstName}
-            onChange={(e) => setForm({ ...form, firstName: e.target.value })}
-            required
-            className={inputClass}
+            placeholder="Buscar por nombre o email"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                setPage(1);
+                setSearch(query);
+              }
+            }}
+            className={cn(inputClass, 'mt-0 max-w-sm')}
           />
-          <input
-            placeholder="Apellido"
-            value={form.lastName}
-            onChange={(e) => setForm({ ...form, lastName: e.target.value })}
-            required
-            className={inputClass}
-          />
-          <input
-            type="email"
-            placeholder="Email"
-            value={form.email}
-            onChange={(e) => setForm({ ...form, email: e.target.value })}
-            required
-            className={inputClass}
-          />
-          <input
-            type="password"
-            placeholder="Contraseña"
-            value={form.password}
-            onChange={(e) => setForm({ ...form, password: e.target.value })}
-            required
-            className={inputClass}
-          />
-          <select
-            value={form.role}
-            onChange={(e) => setForm({ ...form, role: e.target.value })}
-            className={inputClass}
+          <button
+            type="button"
+            onClick={() => {
+              setPage(1);
+              setSearch(query);
+            }}
+            className={btnGhost}
           >
-            {Object.entries(ROLE_LABEL).map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
-          </select>
-          {form.role !== 'ADMINISTRADOR' ? (
-            <select
-              value={form.branchId}
-              onChange={(e) => setForm({ ...form, branchId: e.target.value })}
-              className={inputClass}
-            >
-              {branches.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.name}
-                </option>
-              ))}
-            </select>
-          ) : null}
-          <button type="submit" className={btnPrimary}>
-            Crear
+            Buscar
           </button>
-        </form>
+        </div>
+        {error && !open ? <Alert>{error}</Alert> : null}
+        <div className={cn(cardClass, 'overflow-hidden')}>
+          <table className="w-full">
+            <thead>
+              <tr>
+                <th className={thClass}>Nombre</th>
+                <th className={thClass}>Email</th>
+                <th className={thClass}>Rol</th>
+                <th className={thClass}></th>
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id} className="hover:bg-canvas">
+                  <td className={tdClass}>
+                    {row.lastName}, {row.firstName}
+                    {row.active ? '' : (
+                      <span className="text-muted"> (inactivo)</span>
+                    )}
+                  </td>
+                  <td className={tdClass}>{row.email}</td>
+                  <td className={tdClass}>{ROLE_LABEL[row.role] ?? row.role}</td>
+                  <td className={cn(tdClass, 'text-right')}>
+                    {row.active ? (
+                      <button
+                        type="button"
+                        onClick={() => void deactivate(row.id)}
+                        className={btnDanger}
+                      >
+                        Desactivar
+                      </button>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <Pager
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPage={setPage}
+          />
+        </div>
+        {open ? (
+          <Modal
+            title="Nuevo usuario"
+            onClose={() => {
+              setOpen(false);
+              setError(null);
+            }}
+          >
+            {error ? <Alert>{error}</Alert> : null}
+            <form onSubmit={onSubmit} className="grid gap-3">
+              <label className={labelClass}>
+                Nombre
+                <input
+                  value={form.firstName}
+                  onChange={(e) =>
+                    setForm({ ...form, firstName: e.target.value })
+                  }
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Apellido
+                <input
+                  value={form.lastName}
+                  onChange={(e) =>
+                    setForm({ ...form, lastName: e.target.value })
+                  }
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Email
+                <input
+                  type="email"
+                  value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Contraseña
+                <input
+                  type="password"
+                  value={form.password}
+                  onChange={(e) =>
+                    setForm({ ...form, password: e.target.value })
+                  }
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Rol
+                <select
+                  value={form.role}
+                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  className={inputClass}
+                >
+                  {Object.entries(ROLE_LABEL).map(([value, label]) => (
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {form.role !== 'ADMINISTRADOR' ? (
+                <label className={labelClass}>
+                  Sucursal
+                  <select
+                    value={form.branchId}
+                    onChange={(e) =>
+                      setForm({ ...form, branchId: e.target.value })
+                    }
+                    className={inputClass}
+                  >
+                    {branches.map((row) => (
+                      <option key={row.id} value={row.id}>
+                        {row.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : null}
+              <button type="submit" className={btnPrimary}>
+                Crear
+              </button>
+            </form>
+          </Modal>
+        ) : null}
       </Page>
     </AppShell>
   );

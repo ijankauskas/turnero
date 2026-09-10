@@ -28,6 +28,7 @@ import {
   zonedLocalToUtc,
 } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
+import { apiItems } from '../../lib/paging';
 import type { MeResponse } from '../../lib/types';
 import {
   Alert,
@@ -102,7 +103,7 @@ export default function AgendaPage() {
       apiJson<Appointment[]>(
         `/appointments?from=${encodeURIComponent(fromIso)}&to=${encodeURIComponent(toIso)}${branchQs}`,
       ),
-      isStaff ? apiJson<Branch[]>('/branches') : Promise.resolve([] as Branch[]),
+      isStaff ? apiItems<Branch>('/branches') : Promise.resolve([] as Branch[]),
     ]);
     const agendaPros = pros.filter((row) => row.active !== false);
     setProfessionals(agendaPros);

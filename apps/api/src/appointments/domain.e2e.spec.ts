@@ -271,12 +271,34 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
     const all = await request(app.getHttpServer())
       .get('/api/v1/branches')
       .set('Authorization', `Bearer ${adminToken}`);
-    expect(all.body).toHaveLength(2);
+    expect(all.body.items).toHaveLength(2);
     const mine = await request(app.getHttpServer())
       .get('/api/v1/branches')
       .set('Authorization', `Bearer ${luciaToken}`);
-    expect(mine.body).toHaveLength(1);
-    expect(mine.body[0].id).toBe(centroId);
+    expect(mine.body.items).toHaveLength(1);
+    expect(mine.body.items[0].id).toBe(centroId);
+  });
+
+  it('pages directory lists (CLI)', async () => {
+    const page = await request(app.getHttpServer())
+      .get('/api/v1/clients?page=1&pageSize=1')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(page.status).toBe(200);
+    expect(page.body.items).toHaveLength(1);
+    expect(page.body.page).toBe(1);
+    expect(page.body.pageSize).toBe(1);
+    expect(page.body.total).toBeGreaterThanOrEqual(1);
+    expect(page.body.pageCount).toBeGreaterThanOrEqual(1);
+
+    const named = await request(app.getHttpServer())
+      .get('/api/v1/clients?query=Ana')
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(named.status).toBe(200);
+    expect(
+      named.body.items.every((row: { firstName: string }) =>
+        row.firstName.toLowerCase().includes('ana'),
+      ),
+    ).toBe(true);
   });
 
   it('creates an appointment and isolates Juan from Noelia (APT AUTH-003)', async () => {
@@ -632,8 +654,9 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       .get('/api/v1/clients')
       .set('Authorization', `Bearer ${juanToken}`);
     expect(listed.status).toBe(200);
+    expect(Array.isArray(listed.body.items)).toBe(true);
     expect(
-      listed.body.every((row: { id: string }) => row.id !== exclusive.body.id),
+      listed.body.items.every((row: { id: string }) => row.id !== exclusive.body.id),
     ).toBe(true);
 
     const stolen = await request(app.getHttpServer())

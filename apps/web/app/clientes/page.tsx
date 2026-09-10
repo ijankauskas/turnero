@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../components/app-shell';
 import { apiJson } from '../../lib/session';
+import { apiPage } from '../../lib/paging';
 import {
   Alert,
   btnGhost,
@@ -10,8 +11,11 @@ import {
   cardClass,
   cn,
   inputClass,
+  labelClass,
+  Modal,
   Page,
   PageTitle,
+  Pager,
   tdClass,
   thClass,
 } from '../../components/ui';
@@ -27,24 +31,43 @@ type Client = {
 
 export default function ClientesPage() {
   const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(1);
+  const [pageCount, setPageCount] = useState(1);
+  const [total, setTotal] = useState(0);
   const [rows, setRows] = useState<Client[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [matches, setMatches] = useState<Client[]>([]);
 
-  async function load(search = query) {
-    const data = await apiJson<Client[]>(
-      `/clients${search ? `?query=${encodeURIComponent(search)}` : ''}`,
-    );
-    setRows(data);
+  async function load(nextPage = page, nextSearch = search) {
+    const data = await apiPage<Client>('/clients', {
+      query: nextSearch,
+      page: nextPage,
+      pageSize: 20,
+    });
+    setRows(data.items);
+    setTotal(data.total);
+    setPage(data.page);
+    setPageCount(data.pageCount);
   }
 
   useEffect(() => {
-    void load().catch((err: Error) => setError(err.message));
-  }, []);
+    void load(page, search).catch((err: Error) => setError(err.message));
+  }, [page, search]);
+
+  function resetForm() {
+    setFirstName('');
+    setLastName('');
+    setPhone('');
+    setEmail('');
+    setMatches([]);
+    setError(null);
+  }
 
   async function create(forceCreate = false) {
     setError(null);
@@ -59,12 +82,12 @@ export default function ClientesPage() {
           forceCreate,
         }),
       });
-      setFirstName('');
-      setLastName('');
-      setPhone('');
-      setEmail('');
-      setMatches([]);
-      await load();
+      resetForm();
+      setOpen(false);
+      setPage(1);
+      setSearch('');
+      setQuery('');
+      await load(1, '');
     } catch (err) {
       const typed = err as Error & {
         status?: number;
@@ -89,37 +112,48 @@ export default function ClientesPage() {
   return (
     <AppShell allow={['ADMINISTRADOR', 'ENCARGADO', 'RECEPCION']}>
       <Page>
-        <PageTitle kicker="Directorio">Clientes</PageTitle>
+        <PageTitle
+          kicker="Directorio"
+          actions={
+            <button
+              type="button"
+              className={btnPrimary}
+              onClick={() => {
+                resetForm();
+                setOpen(true);
+              }}
+            >
+              Nuevo cliente
+            </button>
+          }
+        >
+          Clientes
+        </PageTitle>
         <div className="mb-5 flex flex-wrap gap-2">
           <input
             placeholder="Buscar por nombre o teléfono"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === 'Enter') void load(query);
+              if (e.key === 'Enter') {
+                setPage(1);
+                setSearch(query);
+              }
             }}
             className={cn(inputClass, 'mt-0 max-w-sm')}
           />
-          <button type="button" onClick={() => void load(query)} className={btnGhost}>
+          <button
+            type="button"
+            onClick={() => {
+              setPage(1);
+              setSearch(query);
+            }}
+            className={btnGhost}
+          >
             Buscar
           </button>
         </div>
-        {error ? <Alert>{error}</Alert> : null}
-        {matches.length > 0 ? (
-          <ul className="mt-3 text-sm">
-            {matches.map((row) => (
-              <li key={row.id}>
-                Coincide:{' '}
-                <a
-                  href={`/clientes/${row.id}`}
-                  className="underline decoration-line underline-offset-4"
-                >
-                  {row.lastName}, {row.firstName} · {row.phone}
-                </a>
-              </li>
-            ))}
-          </ul>
-        ) : null}
+        {error && !open ? <Alert>{error}</Alert> : null}
         {rows.length === 0 ? (
           <p className="text-sm text-muted">No hay clientes todavía.</p>
         ) : null}
@@ -154,53 +188,91 @@ export default function ClientesPage() {
               ))}
             </tbody>
           </table>
+          <Pager
+            page={page}
+            pageCount={pageCount}
+            total={total}
+            onPage={setPage}
+          />
         </div>
-        <form
-          onSubmit={onSubmit}
-          className={cn(cardClass, 'mt-8 grid max-w-md gap-3 p-5')}
-        >
-          <h2 className="m-0 text-lg font-semibold">Alta</h2>
-          <input
-            placeholder="Nombre"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            required
-            className={inputClass}
-          />
-          <input
-            placeholder="Apellido"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            required
-            className={inputClass}
-          />
-          <input
-            placeholder="Teléfono"
-            value={phone}
-            onChange={(e) => setPhone(e.target.value)}
-            required
-            className={inputClass}
-          />
-          <input
-            type="email"
-            placeholder="Email (opcional)"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={inputClass}
-          />
-          <button type="submit" className={btnPrimary}>
-            Crear
-          </button>
-          {matches.length > 0 ? (
-            <button
-              type="button"
-              onClick={() => void create(true)}
-              className={btnGhost}
-            >
-              Es otra persona: crear igual
-            </button>
-          ) : null}
-        </form>
+        {open ? (
+          <Modal
+            title="Nuevo cliente"
+            onClose={() => {
+              setOpen(false);
+              resetForm();
+            }}
+          >
+            {error ? <Alert>{error}</Alert> : null}
+            {matches.length > 0 ? (
+              <ul className="mb-3 text-sm">
+                {matches.map((row) => (
+                  <li key={row.id}>
+                    Coincide:{' '}
+                    <a
+                      href={`/clientes/${row.id}`}
+                      className="underline decoration-line underline-offset-4"
+                    >
+                      {row.lastName}, {row.firstName} · {row.phone}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+            <form onSubmit={onSubmit} className="grid gap-3">
+              <label className={labelClass}>
+                Nombre
+                <input
+                  value={firstName}
+                  onChange={(e) => setFirstName(e.target.value)}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Apellido
+                <input
+                  value={lastName}
+                  onChange={(e) => setLastName(e.target.value)}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Teléfono
+                <input
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  required
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Email (opcional)
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className={inputClass}
+                />
+              </label>
+              <div className="flex flex-wrap gap-2">
+                <button type="submit" className={btnPrimary}>
+                  Crear
+                </button>
+                {matches.length > 0 ? (
+                  <button
+                    type="button"
+                    onClick={() => void create(true)}
+                    className={btnGhost}
+                  >
+                    Es otra persona: crear igual
+                  </button>
+                ) : null}
+              </div>
+            </form>
+          </Modal>
+        ) : null}
       </Page>
     </AppShell>
   );

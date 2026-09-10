@@ -3,6 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
 import { apiJson } from '../../../lib/session';
+import { apiItems } from '../../../lib/paging';
 import {
   Alert,
   btnDanger,
@@ -69,8 +70,8 @@ export default function ConfigProfesionalesPage() {
   useEffect(() => {
     void Promise.all([
       apiJson<Professional[]>('/professionals'),
-      apiJson<Branch[]>('/branches'),
-      apiJson<CatalogService[]>('/services'),
+      apiItems<Branch>('/branches'),
+      apiItems<CatalogService>('/services'),
     ])
       .then(([pros, b, services]) => {
         setRows(pros);

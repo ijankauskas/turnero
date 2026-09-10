@@ -1,6 +1,8 @@
 import { Injectable } from '@nestjs/common';
+import type { Prisma } from '@prisma/client';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { hiddenNotFound } from '../common/http';
+import { paginated, parsePage } from '../common/pagination';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
 import type { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
 
@@ -8,9 +10,15 @@ import type { CreateBranchDto, UpdateBranchDto } from './dto/branch.dto';
 export class BranchesService {
   constructor(private readonly tenants: TenantPrismaFactory) {}
 
-  async list(user: AuthenticatedUser) {
+  async list(
+    user: AuthenticatedUser,
+    query?: string,
+    page?: string,
+    pageSize?: string,
+  ) {
     const db = this.tenants.forCompany(user.companyId);
-    const where: Record<string, unknown> = { deletedAt: null };
+    const paging = parsePage(page, pageSize);
+    const where: Prisma.BranchWhereInput = { deletedAt: null };
     if (user.role === 'ENCARGADO' || user.role === 'RECEPCION') {
       where.id = user.branchId ?? '__none__';
     }
@@ -21,10 +29,20 @@ export class BranchesService {
       });
       where.id = { in: links.map((row) => row.branchId) };
     }
-    return db.branch.findMany({
-      where,
-      orderBy: { name: 'asc' },
-    });
+    const needle = (query ?? '').trim();
+    if (needle) {
+      where.name = { contains: needle, mode: 'insensitive' };
+    }
+    const [total, rows] = await Promise.all([
+      db.branch.count({ where }),
+      db.branch.findMany({
+        where,
+        orderBy: { name: 'asc' },
+        skip: paging.skip,
+        take: paging.take,
+      }),
+    ]);
+    return paginated(rows, total, paging.page, paging.pageSize);
   }
 
   async create(user: AuthenticatedUser, dto: CreateBranchDto) {
