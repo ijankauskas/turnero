@@ -242,7 +242,7 @@ export default function ConfigProfesionalesPage() {
                   <input
                     value={displayName}
                     onChange={(e) => setDisplayName(e.target.value)}
-                    className={inputClass}
+                    className={cn(inputClass, 'h-10')}
                   />
                 </label>
                 <label className={labelClass}>
@@ -251,7 +251,7 @@ export default function ConfigProfesionalesPage() {
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    className="mt-1.5 block h-[38px] w-[38px] cursor-pointer rounded-lg border border-line bg-white p-[3px]"
+                    className="mt-1.5 block h-10 w-10 cursor-pointer rounded-lg border border-line bg-white p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:h-full [&::-webkit-color-swatch]:w-full [&::-webkit-color-swatch]:rounded-[5px] [&::-webkit-color-swatch]:border-0"
                   />
                 </label>
               </div>
