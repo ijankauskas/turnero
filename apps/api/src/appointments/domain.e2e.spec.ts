@@ -851,4 +851,63 @@ describe('dominio agenda (BRN USR PRO SVC CLI APT AUTH-003)', () => {
       .send({ price: 20000 });
     expect(changePaid.status).toBe(409);
   });
+
+  it('propagates catalog price changes to professional offers (SVC)', async () => {
+    const created = await request(app.getHttpServer())
+      .post('/api/v1/services')
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({ name: 'Brushing', durationMinutes: 30, basePrice: 8000 });
+    expect(created.status).toBe(201);
+
+    const assigned = await request(app.getHttpServer())
+      .put(`/api/v1/professionals/${juanProId}/services`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        items: [
+          {
+            serviceId: corteId,
+            remunerationType: 'PERCENT',
+            remunerationValue: 40,
+          },
+          {
+            serviceId: created.body.id,
+            remunerationType: 'PERCENT',
+            remunerationValue: 40,
+          },
+        ],
+      });
+    expect(assigned.status).toBe(200);
+    expect(
+      assigned.body.find(
+        (row: { serviceId: string }) => row.serviceId === created.body.id,
+      ).price,
+    ).toBe(8000);
+
+    const patched = await request(app.getHttpServer())
+      .patch(`/api/v1/services/${created.body.id}`)
+      .set('Authorization', `Bearer ${adminToken}`)
+      .send({
+        name: 'Brushing',
+        durationMinutes: 30,
+        basePrice: 9500,
+        openPrice: false,
+      });
+    expect(patched.status).toBe(200);
+    expect(patched.body.basePrice).toBe(9500);
+
+    const matrix = await request(app.getHttpServer())
+      .get(`/api/v1/professionals/${juanProId}/services`)
+      .set('Authorization', `Bearer ${adminToken}`);
+    expect(matrix.status).toBe(200);
+    expect(
+      matrix.body.find(
+        (row: { serviceId: string }) => row.serviceId === created.body.id,
+      ).price,
+    ).toBe(9500);
+    expect(
+      matrix.body.find(
+        (row: { serviceId: string }) => row.serviceId === corteId,
+      ).price,
+    ).toBe(10000);
+  });
 });

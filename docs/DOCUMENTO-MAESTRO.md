@@ -370,7 +370,7 @@ Servicio simple. “Uñas + Pestañas” es **otro servicio**, no un compuesto, 
 | company_id | uuid | |
 | professional_id | uuid | |
 | service_id | uuid | |
-| price | numeric(12,2) | precio de *este* profesional; si se omite al crear, copia `base_price` |
+| price | numeric(12,2) | precio de *este* profesional; si se omite al crear, copia `base_price`. Si se edita el precio (o “a definir”) del servicio, se actualiza acá. Los turnos ya creados no se reescriben. |
 | remuneration_type | enum | `PERCENT` \| `FIXED` |
 | remuneration_value | numeric(12,2) | 40 (=40%) o 8000 (pesos fijos) |
 | active | bool | |

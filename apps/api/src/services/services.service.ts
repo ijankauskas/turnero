@@ -51,6 +51,13 @@ export class ServicesService {
     if (!existing) {
       hiddenNotFound();
     }
+    const previousPrice = money(existing.basePrice);
+    const nextOpen = dto.openPrice ?? existing.openPrice;
+    const nextPrice =
+      dto.basePrice !== undefined ? dto.basePrice : previousPrice;
+    const offerPrice = nextOpen ? 0 : nextPrice;
+    const priceChanged =
+      nextOpen !== existing.openPrice || nextPrice !== previousPrice;
     const row = await db.service.update({
       where: { id },
       data: {
@@ -61,6 +68,12 @@ export class ServicesService {
         openPrice: dto.openPrice,
       },
     });
+    if (priceChanged) {
+      await db.professionalService.updateMany({
+        where: { serviceId: id },
+        data: { price: offerPrice },
+      });
+    }
     return serializeService(row);
   }
 }

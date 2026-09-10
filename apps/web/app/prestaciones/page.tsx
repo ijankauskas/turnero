@@ -260,6 +260,12 @@ export default function PrestacionesPage() {
                   className={inputClass}
                 />
               </label>
+              {editingId && !form.openPrice ? (
+                <p className="text-xs text-muted">
+                  Se actualiza también en los profesionales que ofrecen este
+                  servicio. Los turnos ya cargados no cambian.
+                </p>
+              ) : null}
               <label className="flex items-start gap-2 text-sm">
                 <input
                   type="checkbox"
