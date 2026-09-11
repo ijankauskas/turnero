@@ -19,6 +19,7 @@ import { canWriteAppointments, scopedAppointmentQuery } from '../common/list-sco
 import { digitsOnly } from '../common/phone';
 import { fitsScheduleBlock } from '../common/schedule-rules';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
+import { PackagesService } from '../packages/packages.service';
 import type {
   CancelAppointmentDto,
   CreateAppointmentDto,
@@ -27,7 +28,10 @@ import type {
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly tenants: TenantPrismaFactory) {}
+  constructor(
+    private readonly tenants: TenantPrismaFactory,
+    private readonly packages: PackagesService,
+  ) {}
 
   async list(
     user: AuthenticatedUser,
@@ -85,20 +89,38 @@ export class AppointmentsService {
       startAt: new Date(dto.startAt),
     });
     await this.assertNoOverlap(user, payload.professionalId, payload.startAt, payload.endAt);
-    if (dto.paid && payload.pricePending) {
+    if (dto.paid && payload.pricePending && !dto.clientPackageId) {
       throw new ConflictException(
         'Definí el precio del servicio antes de marcarlo pagado',
       );
     }
     const db = this.tenants.forCompany(user.companyId);
+    let packageMeta: {
+      clientPackageId: string;
+      sessionNumber: number;
+      nameSnapshot: string;
+    } | null = null;
+    if (dto.clientPackageId) {
+      const consumed = await this.packages.consumeForAppointment({
+        companyId: user.companyId,
+        clientId: dto.clientId,
+        serviceId: dto.serviceId,
+        clientPackageId: dto.clientPackageId,
+      });
+      packageMeta = consumed;
+      payload.price = 0;
+      payload.pricePending = false;
+    }
     const created = await db.appointment.create({
       data: {
         companyId: user.companyId,
         ...payload,
-        paid: dto.paid ?? false,
+        paid: packageMeta ? true : (dto.paid ?? false),
         observations: dto.observations,
         internalNotes: dto.internalNotes,
         createdByUserId: user.id,
+        clientPackageId: packageMeta?.clientPackageId,
+        sessionNumber: packageMeta?.sessionNumber,
       },
       include: appointmentInclude,
     });
@@ -191,6 +213,9 @@ export class AppointmentsService {
       throw new ConflictException('El turno ya está cancelado');
     }
     const db = this.tenants.forCompany(user.companyId);
+    if (current.clientPackageId) {
+      await this.packages.restoreSession(user.companyId, current.clientPackageId);
+    }
     const updated = await db.appointment.update({
       where: { id },
       data: {
@@ -555,6 +580,8 @@ function serializeAppointment(row: {
   professionalId: string;
   clientId: string;
   serviceId: string;
+  clientPackageId?: string | null;
+  sessionNumber?: number | null;
   startAt: Date;
   endAt: Date;
   durationMinutes: number;
@@ -583,6 +610,8 @@ function serializeAppointment(row: {
     professionalId: row.professionalId,
     clientId: row.clientId,
     serviceId: row.serviceId,
+    clientPackageId: row.clientPackageId ?? null,
+    sessionNumber: row.sessionNumber ?? null,
     startAt: row.startAt.toISOString(),
     endAt: row.endAt.toISOString(),
     durationMinutes: row.durationMinutes,

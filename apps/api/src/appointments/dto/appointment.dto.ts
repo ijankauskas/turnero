@@ -38,6 +38,10 @@ export class CreateAppointmentDto {
   @IsOptional()
   @IsString()
   internalNotes?: string;
+
+  @IsOptional()
+  @IsUUID()
+  clientPackageId?: string;
 }
 
 export class UpdateAppointmentDto {

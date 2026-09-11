@@ -167,6 +167,9 @@ export function AppointmentPanel({
       <header className="mb-3 flex items-start justify-between gap-3">
         <h2 className="m-0 text-lg font-semibold leading-tight">
           {appointment.serviceNameSnapshot}
+          {appointment.sessionNumber
+            ? ` · Sesión ${appointment.sessionNumber}`
+            : ''}
         </h2>
         <button type="button" onClick={onClose} className={btnGhost}>
           Cerrar

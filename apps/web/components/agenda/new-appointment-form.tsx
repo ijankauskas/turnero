@@ -20,6 +20,14 @@ import type { Branch, Client, Professional, ServiceOffer } from './types';
 
 type Slot = { startAt: string; endAt: string };
 
+type ClientPackageOption = {
+  id: string;
+  name: string;
+  remainingSessions: number;
+  totalSessions: number;
+  expiresAt: string | null;
+};
+
 export function NewAppointmentForm({
   date,
   timezone,
@@ -48,6 +56,10 @@ export function NewAppointmentForm({
   );
   const [clientId, setClientId] = useState('');
   const [clientLabel, setClientLabel] = useState('');
+  const [clientPackageId, setClientPackageId] = useState('');
+  const [availablePackages, setAvailablePackages] = useState<
+    ClientPackageOption[]
+  >([]);
   const [serviceId, setServiceId] = useState('');
   const [time, setTime] = useState(initialTime ?? '10:00');
   const [observations, setObservations] = useState('');
@@ -79,6 +91,27 @@ export function NewAppointmentForm({
       );
     });
   }, [professionalId]);
+
+  useEffect(() => {
+    if (!clientId || !serviceId) {
+      setAvailablePackages([]);
+      setClientPackageId('');
+      return;
+    }
+    void apiJson<ClientPackageOption[]>(
+      `/clients/${clientId}/packages/available?serviceId=${serviceId}`,
+    )
+      .then((rows) => {
+        setAvailablePackages(rows);
+        setClientPackageId((current) =>
+          rows.some((row) => row.id === current) ? current : '',
+        );
+      })
+      .catch(() => {
+        setAvailablePackages([]);
+        setClientPackageId('');
+      });
+  }, [clientId, serviceId]);
 
   useEffect(() => {
     if (!professionalId || !branchId || !serviceId || !date) {
@@ -135,6 +168,7 @@ export function NewAppointmentForm({
           serviceId,
           startAt: zonedLocalToUtc(date, time, timezone).toISOString(),
           observations: observations || undefined,
+          clientPackageId: clientPackageId || undefined,
         }),
       });
       onCreated();
@@ -249,6 +283,8 @@ export function NewAppointmentForm({
               if (!client) {
                 setClientId('');
                 setClientLabel('');
+                setClientPackageId('');
+                setAvailablePackages([]);
                 return;
               }
               setClientId(client.id);
@@ -258,6 +294,24 @@ export function NewAppointmentForm({
             }}
           />
         </div>
+
+        {availablePackages.length ? (
+          <label className={labelClass}>
+            Pack de sesiones
+            <SearchableSelect
+              value={clientPackageId}
+              onChange={setClientPackageId}
+              options={[
+                { value: '', label: 'No usar pack (cobrar sesión)' },
+                ...availablePackages.map((row) => ({
+                  value: row.id,
+                  label: `${row.name} · ${row.remainingSessions}/${row.totalSessions} restantes`,
+                })),
+              ]}
+              placeholder="Elegí pack…"
+            />
+          </label>
+        ) : null}
 
         <label className={labelClass}>
           Observaciones
