@@ -185,18 +185,30 @@ export class PackagesService {
       throw new ConflictException('El pack está vencido');
     }
     const sessionNumber = pack.usedSessions + 1;
-    const updated = await db.clientPackage.update({
-      where: { id: pack.id },
+    // Optimistic lock: usedSessions must still match (evita sobreconsumo concurrente).
+    const claimed = await db.clientPackage.updateMany({
+      where: {
+        id: pack.id,
+        clientId: input.clientId,
+        active: true,
+        usedSessions: pack.usedSessions,
+        ...(pack.expiresAt
+          ? { OR: [{ expiresAt: null }, { expiresAt: { gte: new Date() } }] }
+          : {}),
+      },
       data: {
         usedSessions: sessionNumber,
         active: sessionNumber < pack.totalSessions,
       },
     });
+    if (claimed.count !== 1) {
+      throw new ConflictException('El pack no tiene sesiones disponibles');
+    }
     return {
-      clientPackageId: updated.id,
+      clientPackageId: pack.id,
       sessionNumber,
-      remainingSessions: updated.totalSessions - updated.usedSessions,
-      nameSnapshot: updated.nameSnapshot,
+      remainingSessions: pack.totalSessions - sessionNumber,
+      nameSnapshot: pack.nameSnapshot,
     };
   }
 
@@ -208,8 +220,11 @@ export class PackagesService {
     if (!pack || pack.usedSessions <= 0) {
       return;
     }
-    await db.clientPackage.update({
-      where: { id: pack.id },
+    await db.clientPackage.updateMany({
+      where: {
+        id: pack.id,
+        usedSessions: pack.usedSessions,
+      },
       data: {
         usedSessions: pack.usedSessions - 1,
         active: true,

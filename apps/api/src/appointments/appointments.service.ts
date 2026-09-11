@@ -144,7 +144,17 @@ export class AppointmentsService {
       dto.professionalId ||
       dto.serviceId ||
       dto.branchId;
+    if (
+      current.clientPackageId &&
+      ((dto.serviceId && dto.serviceId !== current.serviceId) ||
+        (dto.clientId && dto.clientId !== current.clientId))
+    ) {
+      throw new ConflictException(
+        'Un turno con pack no cambia de servicio ni de cliente; cancelá y creá uno nuevo',
+      );
+    }
     const applyCatalog = Boolean(dto.professionalId || dto.serviceId);
+    const keepPackBilling = Boolean(current.clientPackageId);
     const snapshot = await this.buildSnapshot(user, {
       branchId,
       professionalId,
@@ -158,10 +168,16 @@ export class AppointmentsService {
     const endAt = applyCatalog
       ? snapshot.endAt
       : new Date(startAt.getTime() + durationMinutes * 60_000);
-    const price = applyCatalog ? snapshot.price : current.price;
-    const pricePending = applyCatalog
-      ? snapshot.pricePending
-      : current.pricePending;
+    const price = keepPackBilling
+      ? 0
+      : applyCatalog
+        ? snapshot.price
+        : current.price;
+    const pricePending = keepPackBilling
+      ? false
+      : applyCatalog
+        ? snapshot.pricePending
+        : current.pricePending;
     if ((dto.paid ?? current.paid) && pricePending) {
       throw new ConflictException(
         'Definí el precio del servicio antes de marcarlo pagado',
@@ -211,6 +227,9 @@ export class AppointmentsService {
     const current = await this.loadVisible(user, id);
     if (current.status === 'CANCELADO') {
       throw new ConflictException('El turno ya está cancelado');
+    }
+    if (!canTransition(current.status, 'CANCELADO', user.role)) {
+      throw new ConflictException('Transición de estado no permitida');
     }
     const db = this.tenants.forCompany(user.companyId);
     if (current.clientPackageId) {
