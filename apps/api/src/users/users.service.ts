@@ -101,6 +101,16 @@ export class UsersService {
           color: dto.color ?? '#7C6FF7',
         },
       });
+      if (dto.branchId) {
+        await db.professionalBranch.create({
+          data: {
+            companyId: actor.companyId,
+            professionalId: professional.id,
+            branchId: dto.branchId,
+            isPrimary: true,
+          },
+        });
+      }
       return db.user.update({
         where: { id: created.id },
         data: { professionalId: professional.id },

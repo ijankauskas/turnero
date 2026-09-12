@@ -112,3 +112,37 @@ export async function apiJson<T>(path: string, init: RequestInit = {}): Promise<
   }
   return body;
 }
+
+/** Subida multipart (no fuerza Content-Type JSON). */
+export async function apiUpload<T = { url: string; path: string }>(
+  path: string,
+  file: File,
+): Promise<T> {
+  async function send(token?: string) {
+    const headers = new Headers();
+    if (token) {
+      headers.set('Authorization', `Bearer ${token}`);
+    }
+    const body = new FormData();
+    body.append('file', file);
+    return fetch(`${apiBase}${path}`, { method: 'POST', headers, body });
+  }
+
+  let response = await send(readSession()?.accessToken);
+  if (response.status === 401) {
+    const refreshed = await refreshSession();
+    if (refreshed) {
+      response = await send(readSession()?.accessToken);
+    }
+  }
+  const body = (await response.json()) as T & {
+    message?: string | string[];
+  };
+  if (!response.ok) {
+    const message = Array.isArray(body.message)
+      ? body.message[0]
+      : body.message;
+    throw new Error(message || 'Error al subir archivo');
+  }
+  return body;
+}

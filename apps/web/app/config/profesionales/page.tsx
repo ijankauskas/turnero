@@ -2,8 +2,8 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
-import { apiJson } from '../../../lib/session';
 import { apiItems } from '../../../lib/paging';
+import { apiJson, apiUpload } from '../../../lib/session';
 import {
   Alert,
   btnDanger,
@@ -25,9 +25,11 @@ type Professional = {
   displayName: string;
   color: string;
   title: string | null;
+  photoUrl?: string | null;
   active?: boolean;
   branches: Array<{ id: string; name: string }>;
 };
+
 type Block = {
   weekday: number;
   branchId: string;
@@ -35,7 +37,9 @@ type Block = {
   endTime: string;
   isOff: boolean;
 };
+
 type Branch = { id: string; name: string };
+
 type CatalogService = {
   id: string;
   name: string;
@@ -44,6 +48,7 @@ type CatalogService = {
   openPrice?: boolean;
   active: boolean;
 };
+
 type Offer = {
   serviceId: string;
   price: number;
@@ -52,7 +57,34 @@ type Offer = {
   active: boolean;
 };
 
+type CreatedUser = {
+  id: string;
+  professionalId: string | null;
+};
+
 const DAYS = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+
+type CreateForm = {
+  email: string;
+  password: string;
+  firstName: string;
+  lastName: string;
+  displayName: string;
+  color: string;
+  photoUrl: string;
+  branchIds: string[];
+};
+
+const emptyCreate = (branchIds: string[] = []): CreateForm => ({
+  email: '',
+  password: '',
+  firstName: '',
+  lastName: '',
+  displayName: '',
+  color: '#7C6FF7',
+  photoUrl: '',
+  branchIds,
+});
 
 export default function ConfigProfesionalesPage() {
   const [rows, setRows] = useState<Professional[]>([]);
@@ -61,11 +93,20 @@ export default function ConfigProfesionalesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [color, setColor] = useState('#888888');
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
   const [branchIds, setBranchIds] = useState<string[]>([]);
   const [schedule, setSchedule] = useState<Block[]>([]);
   const [offers, setOffers] = useState<Record<string, Offer>>({});
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [creating, setCreating] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState<CreateForm>(emptyCreate());
+  const [uploading, setUploading] = useState(false);
+
+  async function reloadList() {
+    setRows(await apiJson<Professional[]>('/professionals'));
+  }
 
   useEffect(() => {
     void Promise.all([
@@ -73,10 +114,11 @@ export default function ConfigProfesionalesPage() {
       apiItems<Branch>('/branches'),
       apiItems<CatalogService>('/services'),
     ])
-      .then(([pros, b, services]) => {
+      .then(([pros, branchRows, services]) => {
         setRows(pros);
-        setBranches(b);
+        setBranches(branchRows);
         setCatalog(services);
+        setCreateForm(emptyCreate(branchRows[0] ? [branchRows[0].id] : []));
       })
       .catch((err: Error) => setError(err.message));
   }, []);
@@ -92,15 +134,77 @@ export default function ConfigProfesionalesPage() {
       ]);
       setDisplayName(pro.displayName);
       setColor(pro.color);
+      setPhotoUrl(pro.photoUrl ?? null);
       setBranchIds(pro.branches.map((row) => row.id));
       setSchedule(blocks);
       const next: Record<string, Offer> = {};
-      for (const item of matrix) {
-        next[item.serviceId] = item;
-      }
+      for (const item of matrix) next[item.serviceId] = item;
       setOffers(next);
     } catch (err) {
       setError((err as Error).message);
+    }
+  }
+
+  async function uploadPhoto(file: File | null, onUrl: (url: string) => void) {
+    if (!file) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded = await apiUpload('/uploads/image', file);
+      onUrl(uploaded.url);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploading(false);
+    }
+  }
+
+  async function onCreate(event: FormEvent) {
+    event.preventDefault();
+    if (!createForm.branchIds.length) {
+      setError('Elegí al menos una sucursal');
+      return;
+    }
+    setCreating(true);
+    setError(null);
+    try {
+      const created = await apiJson<CreatedUser>('/users', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: createForm.email.trim(),
+          password: createForm.password,
+          firstName: createForm.firstName.trim(),
+          lastName: createForm.lastName.trim(),
+          role: 'PROFESIONAL',
+          displayName:
+            createForm.displayName.trim() || createForm.firstName.trim(),
+          color: createForm.color,
+          branchId: createForm.branchIds[0] || undefined,
+        }),
+      });
+      if (!created.professionalId) {
+        throw new Error('No se creó la ficha del profesional');
+      }
+      if (createForm.photoUrl) {
+        await apiJson(`/professionals/${created.professionalId}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ photoUrl: createForm.photoUrl }),
+        });
+      }
+      if (createForm.branchIds.length) {
+        await apiJson(`/professionals/${created.professionalId}/branches`, {
+          method: 'PUT',
+          body: JSON.stringify({ branchIds: createForm.branchIds }),
+        });
+      }
+      await reloadList();
+      setCreateOpen(false);
+      setCreateForm(emptyCreate(branches[0] ? [branches[0].id] : []));
+      await openFicha(created.professionalId);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -149,7 +253,7 @@ export default function ConfigProfesionalesPage() {
     try {
       await apiJson(`/professionals/${selected}`, {
         method: 'PATCH',
-        body: JSON.stringify({ displayName, color }),
+        body: JSON.stringify({ displayName, color, photoUrl }),
       });
       await apiJson(`/professionals/${selected}/branches`, {
         method: 'PUT',
@@ -167,20 +271,23 @@ export default function ConfigProfesionalesPage() {
           })),
         }),
       });
-      const saved = await apiJson<Block[]>(`/professionals/${selected}/schedule`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          blocks: schedule.map((row) => ({
-            weekday: Number(row.weekday),
-            branchId: row.branchId,
-            startTime: row.startTime,
-            endTime: row.endTime,
-            isOff: row.isOff,
-          })),
-        }),
-      });
+      const saved = await apiJson<Block[]>(
+        `/professionals/${selected}/schedule`,
+        {
+          method: 'PUT',
+          body: JSON.stringify({
+            blocks: schedule.map((row) => ({
+              weekday: Number(row.weekday),
+              branchId: row.branchId,
+              startTime: row.startTime,
+              endTime: row.endTime,
+              isOff: row.isOff,
+            })),
+          }),
+        },
+      );
       setSchedule(saved);
-      setRows(await apiJson<Professional[]>('/professionals'));
+      await reloadList();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -201,8 +308,169 @@ export default function ConfigProfesionalesPage() {
             ← Configuración
           </a>
         </p>
-        <PageTitle kicker="Equipo">Profesionales</PageTitle>
+        <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+          <PageTitle kicker="Equipo">Profesionales</PageTitle>
+          <button
+            type="button"
+            className={btnPrimary}
+            onClick={() => {
+              setError(null);
+              setCreateOpen(true);
+            }}
+          >
+            Nuevo profesional
+          </button>
+        </div>
         {error ? <Alert>{error}</Alert> : null}
+
+        {createOpen ? (
+          <form
+            onSubmit={onCreate}
+            className={cn(cardClass, 'mb-6 grid max-w-xl gap-3 p-5')}
+          >
+            <h2 className="m-0 text-lg font-semibold">Alta de profesional</h2>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className={labelClass}>
+                Nombre
+                <input
+                  required
+                  value={createForm.firstName}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, firstName: e.target.value })
+                  }
+                  className={inputClass}
+                />
+              </label>
+              <label className={labelClass}>
+                Apellido
+                <input
+                  required
+                  value={createForm.lastName}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, lastName: e.target.value })
+                  }
+                  className={inputClass}
+                />
+              </label>
+            </div>
+            <label className={labelClass}>
+              Nombre en agenda
+              <input
+                value={createForm.displayName}
+                placeholder="Si vacío, usa el nombre"
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, displayName: e.target.value })
+                }
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Email (login)
+              <input
+                type="email"
+                required
+                value={createForm.email}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, email: e.target.value })
+                }
+                className={inputClass}
+              />
+            </label>
+            <label className={labelClass}>
+              Contraseña temporal
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={createForm.password}
+                onChange={(e) =>
+                  setCreateForm({ ...createForm, password: e.target.value })
+                }
+                className={inputClass}
+              />
+            </label>
+            <div className="flex flex-wrap items-end gap-3">
+              <label className={labelClass}>
+                Color
+                <input
+                  type="color"
+                  value={createForm.color}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, color: e.target.value })
+                  }
+                  className="mt-1.5 block h-10 w-10 cursor-pointer rounded-lg border border-line bg-white p-0"
+                />
+              </label>
+              <div className="min-w-0 flex-1">
+                <p className={labelClass}>Foto</p>
+                {createForm.photoUrl ? (
+                  <img
+                    src={createForm.photoUrl}
+                    alt=""
+                    className="mb-2 size-14 rounded-full object-cover"
+                  />
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploading}
+                  onChange={(e) =>
+                    void uploadPhoto(e.target.files?.[0] ?? null, (url) =>
+                      setCreateForm((current) => ({
+                        ...current,
+                        photoUrl: url,
+                      })),
+                    )
+                  }
+                  className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-canvas file:px-3 file:py-2 file:text-sm file:font-medium"
+                />
+              </div>
+            </div>
+            <fieldset className="rounded-xl border border-line p-3">
+              <legend className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted">
+                Sucursales
+              </legend>
+              {branches.map((row) => (
+                <label
+                  key={row.id}
+                  className="flex items-center gap-2 py-1 text-sm"
+                >
+                  <input
+                    type="checkbox"
+                    checked={createForm.branchIds.includes(row.id)}
+                    onChange={(e) => {
+                      setCreateForm((current) => ({
+                        ...current,
+                        branchIds: e.target.checked
+                          ? [...current.branchIds, row.id]
+                          : current.branchIds.filter((id) => id !== row.id),
+                      }));
+                    }}
+                    className="size-4 rounded border-line"
+                  />
+                  {row.name}
+                </label>
+              ))}
+            </fieldset>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="submit"
+                disabled={creating || uploading}
+                className={btnPrimary}
+              >
+                {creating ? 'Creando…' : 'Crear profesional'}
+              </button>
+              <button
+                type="button"
+                className={btnGhost}
+                onClick={() => setCreateOpen(false)}
+              >
+                Cancelar
+              </button>
+            </div>
+          </form>
+        ) : null}
+
         <div className="grid gap-6 lg:grid-cols-[280px_minmax(0,1fr)]">
           <ul className="m-0 grid list-none content-start gap-2 p-0">
             {rows.map((row) => (
@@ -212,25 +480,37 @@ export default function ConfigProfesionalesPage() {
                   onClick={() => void openFicha(row.id)}
                   className={cn(
                     cardClass,
-                    'w-full p-4 text-left transition hover:border-ink/20',
+                    'flex w-full items-center gap-3 p-4 text-left transition hover:border-ink/20',
                     selected === row.id && 'border-accent bg-accent/10',
                   )}
                 >
-                  <span
-                    className="mb-1 inline-block size-2.5 rounded-full"
-                    style={{ background: row.color }}
-                  />
-                  <strong className="ml-2">{row.displayName}</strong>
-                  {row.active === false ? (
-                    <span className="text-muted"> (inactivo)</span>
-                  ) : null}
-                  <div className="mt-1 text-xs text-muted">
-                    {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
-                  </div>
+                  {row.photoUrl ? (
+                    <img
+                      src={row.photoUrl}
+                      alt=""
+                      className="size-9 rounded-full object-cover"
+                    />
+                  ) : (
+                    <span
+                      className="inline-block size-2.5 shrink-0 rounded-full"
+                      style={{ background: row.color }}
+                    />
+                  )}
+                  <span className="min-w-0">
+                    <strong className="block truncate">{row.displayName}</strong>
+                    {row.active === false ? (
+                      <span className="text-muted"> (inactivo)</span>
+                    ) : null}
+                    <span className="mt-0.5 block text-xs text-muted">
+                      {row.branches.map((b) => b.name).join(', ') ||
+                        'sin sucursal'}
+                    </span>
+                  </span>
                 </button>
               </li>
             ))}
           </ul>
+
           {selected && current ? (
             <form onSubmit={saveFicha} className={cn(cardClass, 'p-5')}>
               <h2 className="mt-0 text-lg font-semibold">
@@ -251,24 +531,49 @@ export default function ConfigProfesionalesPage() {
                     type="color"
                     value={color}
                     onChange={(e) => setColor(e.target.value)}
-                    className="mt-1.5 block h-10 w-10 cursor-pointer rounded-lg border border-line bg-white p-0 overflow-hidden [&::-webkit-color-swatch-wrapper]:p-0 [&::-webkit-color-swatch]:h-full [&::-webkit-color-swatch]:w-full [&::-webkit-color-swatch]:rounded-[5px] [&::-webkit-color-swatch]:border-0"
+                    className="mt-1.5 block h-10 w-10 cursor-pointer rounded-lg border border-line bg-white p-0"
                   />
                 </label>
+              </div>
+              <div className="mt-3">
+                <p className={labelClass}>Foto</p>
+                {photoUrl ? (
+                  <img
+                    src={photoUrl}
+                    alt=""
+                    className="mb-2 size-16 rounded-full object-cover"
+                  />
+                ) : null}
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploading}
+                  onChange={(e) =>
+                    void uploadPhoto(
+                      e.target.files?.[0] ?? null,
+                      (url) => setPhotoUrl(url),
+                    )
+                  }
+                  className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-canvas file:px-3 file:py-2 file:text-sm file:font-medium"
+                />
               </div>
               <fieldset className="mt-4 rounded-2xl border border-line p-3">
                 <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
                   Sucursales
                 </legend>
                 {branches.map((row) => (
-                  <label key={row.id} className="flex items-center gap-2 py-1 text-sm">
+                  <label
+                    key={row.id}
+                    className="flex items-center gap-2 py-1 text-sm"
+                  >
                     <input
                       type="checkbox"
                       checked={branchIds.includes(row.id)}
                       onChange={(e) => {
-                        setBranchIds((currentIds) =>
+                        setBranchIds((ids) =>
                           e.target.checked
-                            ? [...currentIds, row.id]
-                            : currentIds.filter((id) => id !== row.id),
+                            ? [...ids, row.id]
+                            : ids.filter((id) => id !== row.id),
                         );
                       }}
                       className="size-4 rounded border-line"
@@ -309,23 +614,25 @@ export default function ConfigProfesionalesPage() {
                           </td>
                           <td className={tdClass}>
                             {service.openPrice ? (
-                              <span className="text-sm text-muted">A definir</span>
+                              <span className="text-sm text-muted">
+                                A definir
+                              </span>
                             ) : (
                               <input
-                              type="number"
-                              disabled={!offer}
-                              value={offer?.price ?? service.basePrice}
-                              onChange={(e) =>
-                                setOffers((currentOffers) => ({
-                                  ...currentOffers,
-                                  [service.id]: {
-                                    ...currentOffers[service.id],
-                                    price: Number(e.target.value),
-                                  },
-                                }))
-                              }
-                              className={cn(inputClass, 'mt-0 w-24')}
-                            />
+                                type="number"
+                                disabled={!offer}
+                                value={offer?.price ?? service.basePrice}
+                                onChange={(e) =>
+                                  setOffers((currentOffers) => ({
+                                    ...currentOffers,
+                                    [service.id]: {
+                                      ...currentOffers[service.id],
+                                      price: Number(e.target.value),
+                                    },
+                                  }))
+                                }
+                                className={cn(inputClass, 'mt-0 w-24')}
+                              />
                             )}
                           </td>
                           <td className={tdClass}>
@@ -385,7 +692,9 @@ export default function ConfigProfesionalesPage() {
                   <select
                     value={block.weekday}
                     onChange={(e) =>
-                      updateBlock(index, { weekday: Number(e.target.value) })
+                      updateBlock(index, {
+                        weekday: Number(e.target.value),
+                      })
                     }
                     className={cn(controlClass, 'mt-0')}
                   >
@@ -439,8 +748,8 @@ export default function ConfigProfesionalesPage() {
                     type="button"
                     className={btnGhost}
                     onClick={() =>
-                      setSchedule((currentBlocks) =>
-                        currentBlocks.filter((_, i) => i !== index),
+                      setSchedule((blocks) =>
+                        blocks.filter((_, i) => i !== index),
                       )
                     }
                   >
@@ -464,8 +773,8 @@ export default function ConfigProfesionalesPage() {
                         method: 'POST',
                       })
                         .then(() =>
-                          setRows((rows) =>
-                            rows.map((row) =>
+                          setRows((list) =>
+                            list.map((row) =>
                               row.id === current.id
                                 ? { ...row, active: false }
                                 : row,

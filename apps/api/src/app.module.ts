@@ -16,6 +16,7 @@ import { ProfessionalsModule } from './professionals/professionals.module';
 import { ReportsModule } from './reports/reports.module';
 import { ServicesModule } from './services/services.module';
 import { TenantModule } from './tenant/tenant.module';
+import { UploadsModule } from './uploads/uploads.module';
 import { UsersModule } from './users/users.module';
 
 @Module({
@@ -37,6 +38,7 @@ import { UsersModule } from './users/users.module';
     ReportsModule,
     NotesModule,
     NotificationsModule,
+    UploadsModule,
     HealthModule,
   ],
   providers: [

@@ -1,6 +1,10 @@
 @import "tailwindcss";
 
-@theme inline {
+/*
+ * Sin "inline": las utilities referencian var(--color-*),
+ * así AppShell puede sobreescribir accent/sidebar por empresa.
+ */
+@theme {
   --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --color-canvas: #f1f5f9;
   --color-cream: #f1f5f9;
