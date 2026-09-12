@@ -54,6 +54,8 @@ export default function ConfigEmpresaPage() {
       });
       setRow(next);
       setSaved(true);
+      // Recargar para que AppShell tome los nuevos colores en toda la app
+      window.setTimeout(() => window.location.reload(), 400);
     } catch (err) {
       setError((err as Error).message);
     }
@@ -102,19 +104,19 @@ export default function ConfigEmpresaPage() {
               />
             </label>
             <label className={labelClass}>
-              Color principal
+              Color principal (botones y acentos)
               <input
                 type="color"
-                value={row.primaryColor || '#1a1a1a'}
+                value={row.primaryColor || '#2563eb'}
                 onChange={(e) => setRow({ ...row, primaryColor: e.target.value })}
                 className="mt-1.5 h-10 w-16 cursor-pointer rounded-lg border border-line bg-white"
               />
             </label>
             <label className={labelClass}>
-              Color de fondo
+              Color del menú (barra lateral)
               <input
                 type="color"
-                value={row.secondaryColor || '#f6f4f1'}
+                value={row.secondaryColor || '#0b1220'}
                 onChange={(e) =>
                   setRow({ ...row, secondaryColor: e.target.value })
                 }

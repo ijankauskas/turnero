@@ -1,6 +1,6 @@
 'use client';
 
-import { FormEvent, useMemo, useState } from 'react';
+import { FormEvent, useMemo, useState, type CSSProperties } from 'react';
 import { useRouter } from 'next/navigation';
 import { apiBase, writeSession } from '../lib/session';
 import {
@@ -38,6 +38,7 @@ export function LoginForm({
   const [pending, setPending] = useState(false);
 
   const accent = branding?.primaryColor ?? '#2563eb';
+  const menuColor = branding?.secondaryColor ?? '#0b1220';
   const title = branding?.name ?? 'Turnero';
 
   const subtitle = useMemo(() => {
@@ -97,11 +98,20 @@ export function LoginForm({
   }
 
   return (
-    <main className="grid min-h-screen lg:grid-cols-[minmax(280px,42%)_1fr]">
+    <main
+      className="grid min-h-screen lg:grid-cols-[minmax(280px,42%)_1fr]"
+      style={
+        {
+          ['--color-accent']: accent,
+          ['--color-gold']: accent,
+          ['--color-sidebar']: menuColor,
+        } as CSSProperties
+      }
+    >
       <section
         className="relative hidden flex-col justify-between bg-sidebar p-10 text-white lg:flex"
         style={{
-          background: `linear-gradient(165deg, #0b1220 0%, ${accent} 160%)`,
+          background: `linear-gradient(165deg, ${menuColor} 0%, ${accent} 160%)`,
         }}
       >
         <p className="flex items-center gap-3 text-sm font-semibold tracking-wide text-white/80">
