@@ -10,6 +10,7 @@ import { ClientsModule } from './clients/clients.module';
 import { CompanyModule } from './company/company.module';
 import { HealthModule } from './health/health.module';
 import { NotesModule } from './notes/notes.module';
+import { PackagesModule } from './packages/packages.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfessionalsModule } from './professionals/professionals.module';
@@ -36,6 +37,7 @@ import { UsersModule } from './users/users.module';
     AppointmentsModule,
     ReportsModule,
     NotesModule,
+    PackagesModule,
     NotificationsModule,
     HealthModule,
   ],

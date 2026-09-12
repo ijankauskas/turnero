@@ -16,6 +16,8 @@ const TENANT_MODELS = new Set<string>([
   'NotificationJob',
   'DailyNote',
   'RefreshToken',
+  'ServicePackage',
+  'ClientPackage',
 ]);
 
 function delegateName(model: string): string {

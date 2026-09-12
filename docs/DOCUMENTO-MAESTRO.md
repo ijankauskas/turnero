@@ -497,7 +497,17 @@ Company 1──* Client
 Appointment → Company, Branch, Professional, Client, Service
 ```
 
-### 4.16 Lo que no modelamos en el MVP
+### 4.16 Packs de sesiones (bonos)
+
+Para tratamientos con varias visitas (depilación, etc.):
+
+- `ServicePackage`: catálogo del pack (prestación de sesión + N + precio + vigencia opcional).
+- `ClientPackage`: bono vendido al cliente (`totalSessions`, `usedSessions`, `expiresAt`).
+- Al crear un turno con `clientPackageId` se descuenta 1 sesión; precio 0 y pagado (prepago).
+- Al cancelar el turno se restaura la sesión.
+
+### 4.17 Lo que no modelamos en el MVP
+
 
 - Recursos físicos (cabina, bac shampooing): aparecen en la referencia visual, van al roadmap.
 - Servicio compuesto (Uñas 30 + Pestañas 30 = pack 45 min).

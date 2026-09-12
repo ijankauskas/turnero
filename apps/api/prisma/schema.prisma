@@ -91,6 +91,8 @@ model Company {
   notificationJobs      NotificationJob[]
   dailyNotes            DailyNote[]
   refreshTokens         RefreshToken[]
+  servicePackages       ServicePackage[]
+  clientPackages        ClientPackage[]
 
   @@map("companies")
 }
@@ -265,6 +267,8 @@ model Service {
   company              Company               @relation(fields: [companyId], references: [id])
   professionalServices ProfessionalService[]
   appointments         Appointment[]
+  servicePackages      ServicePackage[]
+  clientPackages       ClientPackage[]
 
   @@index([companyId])
   @@map("services")
@@ -305,8 +309,9 @@ model Client {
   updatedAt           DateTime  @updatedAt @map("updated_at")
   deletedAt           DateTime? @map("deleted_at")
 
-  company      Company       @relation(fields: [companyId], references: [id])
+  company      Company         @relation(fields: [companyId], references: [id])
   appointments Appointment[]
+  packages     ClientPackage[]
 
   @@index([companyId, phone])
   @@map("clients")
@@ -319,6 +324,8 @@ model Appointment {
   professionalId           String             @map("professional_id")
   clientId                 String             @map("client_id")
   serviceId                String             @map("service_id")
+  clientPackageId          String?            @map("client_package_id")
+  sessionNumber            Int?               @map("session_number")
   startAt                  DateTime           @map("start_at")
   endAt                    DateTime           @map("end_at")
   durationMinutes          Int                @map("duration_minutes")
@@ -342,16 +349,67 @@ model Appointment {
   branch       Branch       @relation(fields: [branchId], references: [id])
   professional Professional @relation(fields: [professionalId], references: [id])
   client       Client       @relation(fields: [clientId], references: [id])
-  service      Service      @relation(fields: [serviceId], references: [id])
-  createdBy    User         @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id])
-  cancelledBy  User?        @relation("AppointmentCancelledBy", fields: [cancelledByUserId], references: [id])
+  service      Service        @relation(fields: [serviceId], references: [id])
+  clientPackage ClientPackage? @relation(fields: [clientPackageId], references: [id])
+  createdBy    User           @relation("AppointmentCreatedBy", fields: [createdByUserId], references: [id])
+  cancelledBy  User?          @relation("AppointmentCancelledBy", fields: [cancelledByUserId], references: [id])
   payments           Payment[]
   notificationJobs   NotificationJob[]
 
   @@index([companyId, professionalId, startAt])
+  @@index([clientPackageId])
   @@index([companyId, branchId, startAt])
   @@index([companyId, clientId])
   @@map("appointments")
+}
+
+model ServicePackage {
+  id             String    @id @default(uuid())
+  companyId      String    @map("company_id")
+  serviceId      String    @map("service_id")
+  name           String
+  sessionCount   Int       @map("session_count")
+  price          Decimal   @db.Decimal(12, 2)
+  validityDays   Int?      @map("validity_days")
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
+
+  company        Company         @relation(fields: [companyId], references: [id])
+  service        Service         @relation(fields: [serviceId], references: [id])
+  clientPackages ClientPackage[]
+
+  @@index([companyId, serviceId])
+  @@map("service_packages")
+}
+
+model ClientPackage {
+  id               String    @id @default(uuid())
+  companyId        String    @map("company_id")
+  clientId         String    @map("client_id")
+  servicePackageId String    @map("service_package_id")
+  serviceId        String    @map("service_id")
+  nameSnapshot     String    @map("name_snapshot")
+  totalSessions    Int       @map("total_sessions")
+  usedSessions     Int       @default(0) @map("used_sessions")
+  pricePaid        Decimal   @map("price_paid") @db.Decimal(12, 2)
+  purchasedAt      DateTime  @default(now()) @map("purchased_at")
+  expiresAt        DateTime? @map("expires_at")
+  active           Boolean   @default(true)
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  company        Company        @relation(fields: [companyId], references: [id])
+  client         Client         @relation(fields: [clientId], references: [id])
+  servicePackage ServicePackage @relation(fields: [servicePackageId], references: [id])
+  service        Service        @relation(fields: [serviceId], references: [id])
+  appointments   Appointment[]
+
+  @@index([companyId, clientId])
+  @@index([companyId, serviceId])
+  @@map("client_packages")
 }
 
 model Payment {

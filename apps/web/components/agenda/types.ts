@@ -26,6 +26,8 @@ export type Appointment = {
   branchId: string;
   clientId: string;
   serviceId: string;
+  clientPackageId?: string | null;
+  sessionNumber?: number | null;
   professional: { id?: string; displayName: string; color: string };
   client: {
     id?: string;
