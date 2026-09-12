@@ -14,7 +14,30 @@ const nextConfig: NextConfig = {
         value: 'max-age=15552000; includeSubDomains',
       });
     }
-    return [{ source: '/:path*', headers: security }];
+
+    return [
+      // HTML/rutas: no cache (el browser siempre pide HTML fresco tras un deploy)
+      {
+        source: '/:path*',
+        headers: [
+          ...security,
+          {
+            key: 'Cache-Control',
+            value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+      // Assets hasheados: cache largo (gana sobre la regla anterior)
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
+          },
+        ],
+      },
+    ];
   },
 };
 
