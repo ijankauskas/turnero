@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { CSSProperties, ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ROLE_LABEL } from '../lib/labels';
 import {
@@ -95,6 +95,7 @@ export function AppShell({
   }
 
   const accent = me.company.primaryColor ?? '#2563eb';
+  const menuColor = me.company.secondaryColor ?? '#0b1220';
   const links = NAV.filter(
     (item) => !item.roles || item.roles.includes(me.user.role),
   );
@@ -132,7 +133,7 @@ export function AppShell({
           {me.company.name}
         </strong>
       </div>
-      <nav className="flex flex-1 flex-col gap-0.5 px-2">
+      <nav className="flex flex-1 flex-col gap-0.5 overflow-y-auto px-2">
         {links.map((item) => {
           const current =
             item.href === '/agenda'
@@ -158,7 +159,7 @@ export function AppShell({
           );
         })}
       </nav>
-      <div className="mt-auto border-t border-white/10 px-4 py-4">
+      <div className="shrink-0 border-t border-white/10 px-4 py-4">
         <p className="truncate text-sm font-medium text-white">
           {me.user.firstName} {me.user.lastName}
         </p>
@@ -179,7 +180,13 @@ export function AppShell({
   return (
     <div
       className="shell bg-canvas"
-      style={{ ['--color-primary' as string]: accent }}
+      style={
+        {
+          ['--color-accent']: accent,
+          ['--color-gold']: accent,
+          ['--color-sidebar']: menuColor,
+        } as CSSProperties
+      }
     >
       {menuOpen ? (
         <button
@@ -191,7 +198,7 @@ export function AppShell({
       ) : null}
       <aside
         className={cn(
-          'shell-nav flex min-h-screen flex-col bg-sidebar text-white',
+          'shell-nav sticky top-0 flex h-screen flex-col self-start bg-sidebar text-white',
           menuOpen && 'is-open',
         )}
       >

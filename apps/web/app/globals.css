@@ -46,6 +46,14 @@
   }
 }
 
+.shell-nav {
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  align-self: start;
+  overflow: hidden;
+}
+
 @media (max-width: 1023px) {
   .shell {
     grid-template-columns: 1fr;
@@ -56,6 +64,8 @@
     inset: 0 auto 0 0;
     z-index: 40;
     width: min(232px, 86vw);
+    height: 100%;
+    align-self: auto;
     transform: translateX(-110%);
     transition: transform 160ms ease;
   }
