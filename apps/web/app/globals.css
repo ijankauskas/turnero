@@ -1,0 +1,66 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --color-canvas: #f1f5f9;
+  --color-cream: #f1f5f9;
+  --color-ink: #0f172a;
+  --color-muted: #64748b;
+  --color-line: #e2e8f0;
+  --color-paper: #ffffff;
+  --color-accent: #2563eb;
+  --color-gold: #2563eb;
+  --color-sidebar: #0b1220;
+  --shadow-soft: 0 1px 2px rgb(15 23 42 / 0.05), 0 10px 28px rgb(15 23 42 / 0.06);
+}
+
+@layer base {
+  html,
+  body {
+    max-width: 100%;
+  }
+
+  a {
+    color: inherit;
+  }
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 232px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.agenda-layout {
+  grid-template-columns: 232px minmax(0, 1fr) auto;
+}
+
+.agenda-layout > aside,
+.agenda-layout > div {
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .agenda-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1023px) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-nav {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 40;
+    width: min(232px, 86vw);
+    transform: translateX(-110%);
+    transition: transform 160ms ease;
+  }
+
+  .shell-nav.is-open {
+    transform: translateX(0);
+  }
+}

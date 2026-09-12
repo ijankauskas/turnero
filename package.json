@@ -1,0 +1,25 @@
+{
+  "name": "turnero",
+  "private": true,
+  "description": "SaaS multiempresa de agenda — monorepo NestJS + Next.js",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run start:dev -w @turnero/api",
+    "dev:web": "npm run dev -w @turnero/web",
+    "build": "npm run build -w @turnero/shared && npm run build -w @turnero/api && npm run build -w @turnero/web",
+    "build:shared": "npm run build -w @turnero/shared",
+    "lint": "npm run lint -w @turnero/shared && npm run lint -w @turnero/api && npm run lint -w @turnero/web",
+    "test": "npm run test -w @turnero/api --if-present",
+    "db:generate": "npm run prisma:generate -w @turnero/api",
+    "db:migrate": "npm run prisma:migrate -w @turnero/api",
+    "db:migrate:dev": "npm run prisma:migrate:dev -w @turnero/api",
+    "db:seed": "npm run prisma:seed -w @turnero/api",
+    "db:push": "npm run prisma:push -w @turnero/api"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
