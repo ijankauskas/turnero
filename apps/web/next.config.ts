@@ -16,18 +16,7 @@ const nextConfig: NextConfig = {
     }
 
     return [
-      // Assets con hash: cache largo (si cambia el build, cambia el nombre)
-      {
-        source: '/_next/static/:path*',
-        headers: [
-          ...security,
-          {
-            key: 'Cache-Control',
-            value: 'public, max-age=31536000, immutable',
-          },
-        ],
-      },
-      // HTML y resto: nunca cachear → el browser siempre pide la versión nueva
+      // HTML/rutas: no cache (el browser siempre pide HTML fresco tras un deploy)
       {
         source: '/:path*',
         headers: [
@@ -35,6 +24,16 @@ const nextConfig: NextConfig = {
           {
             key: 'Cache-Control',
             value: 'no-store, no-cache, must-revalidate, max-age=0',
+          },
+        ],
+      },
+      // Assets hasheados: cache largo (gana sobre la regla anterior)
+      {
+        source: '/_next/static/:path*',
+        headers: [
+          {
+            key: 'Cache-Control',
+            value: 'public, max-age=31536000, immutable',
           },
         ],
       },
