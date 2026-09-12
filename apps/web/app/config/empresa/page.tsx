@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
-import { apiJson } from '../../../lib/session';
+import { apiJson, apiUpload } from '../../../lib/session';
 import {
   Alert,
   btnPrimary,
@@ -28,6 +28,7 @@ export default function ConfigEmpresaPage() {
   const [row, setRow] = useState<Company | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     void apiJson<Company>('/company')
@@ -54,10 +55,23 @@ export default function ConfigEmpresaPage() {
       });
       setRow(next);
       setSaved(true);
-      // Recargar para que AppShell tome los nuevos colores en toda la app
       window.setTimeout(() => window.location.reload(), 400);
     } catch (err) {
       setError((err as Error).message);
+    }
+  }
+
+  async function onLogoFile(file: File | null) {
+    if (!file || !row) return;
+    setUploading(true);
+    setError(null);
+    try {
+      const uploaded = await apiUpload('/uploads/image', file);
+      setRow({ ...row, logoUrl: uploaded.url });
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setUploading(false);
     }
   }
 
@@ -76,7 +90,7 @@ export default function ConfigEmpresaPage() {
         {error ? <Alert>{error}</Alert> : null}
         {saved ? (
           <p className="mb-4 text-sm text-muted">
-            Guardado. Recargá para ver el branding en el menú.
+            Guardado. Actualizando colores…
           </p>
         ) : null}
         {row ? (
@@ -92,23 +106,34 @@ export default function ConfigEmpresaPage() {
                 className={inputClass}
               />
             </label>
-            <label className={labelClass}>
-              Logo (URL)
+            <div>
+              <p className={labelClass}>Logo</p>
+              {row.logoUrl ? (
+                <img
+                  src={row.logoUrl}
+                  alt=""
+                  className="mb-2 h-14 rounded-lg border border-line bg-white object-contain p-1"
+                />
+              ) : null}
               <input
-                value={row.logoUrl ?? ''}
-                onChange={(e) =>
-                  setRow({ ...row, logoUrl: e.target.value || null })
-                }
-                placeholder="https://…"
-                className={inputClass}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif"
+                disabled={uploading}
+                onChange={(e) => void onLogoFile(e.target.files?.[0] ?? null)}
+                className="mt-1.5 block w-full text-sm text-muted file:mr-3 file:rounded-lg file:border-0 file:bg-canvas file:px-3 file:py-2 file:text-sm file:font-medium file:text-ink"
               />
-            </label>
+              <p className="mt-1 text-xs text-muted">
+                {uploading ? 'Subiendo…' : 'JPG, PNG o WEBP. Máx. 2 MB.'}
+              </p>
+            </div>
             <label className={labelClass}>
               Color principal (botones y acentos)
               <input
                 type="color"
                 value={row.primaryColor || '#2563eb'}
-                onChange={(e) => setRow({ ...row, primaryColor: e.target.value })}
+                onChange={(e) =>
+                  setRow({ ...row, primaryColor: e.target.value })
+                }
                 className="mt-1.5 h-10 w-16 cursor-pointer rounded-lg border border-line bg-white"
               />
             </label>
@@ -128,7 +153,9 @@ export default function ConfigEmpresaPage() {
               <input
                 type="email"
                 value={row.contactEmail}
-                onChange={(e) => setRow({ ...row, contactEmail: e.target.value })}
+                onChange={(e) =>
+                  setRow({ ...row, contactEmail: e.target.value })
+                }
                 className={inputClass}
               />
             </label>

@@ -282,6 +282,7 @@ function serializeProfessional(row: {
   displayName: string;
   title: string | null;
   color: string;
+  photoUrl: string | null;
   active: boolean;
   userId: string;
   user: { id: string; email: string; firstName: string; lastName: string };
@@ -296,6 +297,7 @@ function serializeProfessional(row: {
     displayName: row.displayName,
     title: row.title,
     color: row.color,
+    photoUrl: row.photoUrl,
     active: row.active,
     userId: row.userId,
     user: row.user,

@@ -173,6 +173,7 @@ model Professional {
   displayName String    @map("display_name")
   title       String?
   color       String    @default("#7C6FF7")
+  photoUrl    String?   @map("photo_url")
   active      Boolean   @default(true)
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")

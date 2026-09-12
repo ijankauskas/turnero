@@ -51,6 +51,10 @@ export class UpdateProfessionalDto {
   color?: string;
 
   @IsOptional()
+  @IsString()
+  photoUrl?: string | null;
+
+  @IsOptional()
   @IsBoolean()
   active?: boolean;
 }

@@ -1,14 +1,21 @@
 import { INestApplication, ValidationPipe } from '@nestjs/common';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import { HttpErrorFilter } from './common/http-error.filter';
 import { requestIdMiddleware } from './common/request-id.middleware';
 import { RequestLogInterceptor } from './common/request-log.interceptor';
+import { ensureUploadRoot, UPLOAD_ROOT } from './uploads/storage';
 
 export function configureApp(app: INestApplication) {
+  ensureUploadRoot();
+  (app as NestExpressApplication).useStaticAssets(UPLOAD_ROOT, {
+    prefix: '/uploads/',
+  });
   app.use(
     helmet({
       frameguard: { action: 'deny' },
       noSniff: true,
+      crossOriginResourcePolicy: { policy: 'cross-origin' },
       hsts:
         process.env.NODE_ENV === 'production'
           ? { maxAge: 15552000, includeSubDomains: true }
@@ -18,8 +25,6 @@ export function configureApp(app: INestApplication) {
   );
   app.use(requestIdMiddleware);
   app.setGlobalPrefix('api/v1');
-  // WEB_ORIGIN: un origen, o varios separados por coma
-  // ej: http://167.233.139.178:3000,https://www.ip.com.ar
   const corsOrigins = (process.env.WEB_ORIGIN ?? 'http://localhost:3000')
     .split(',')
     .map((origin) => origin.trim())
