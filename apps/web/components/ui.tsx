@@ -90,44 +90,7 @@ export function Alert({ children }: { children: ReactNode }) {
   );
 }
 
-export function Modal({
-  title,
-  onClose,
-  children,
-  wide,
-}: {
-  title: string;
-  onClose: () => void;
-  children: ReactNode;
-  wide?: boolean;
-}) {
-  return (
-    <div
-      className="fixed inset-0 z-40 grid place-items-center bg-ink/40 p-4"
-      onClick={onClose}
-    >
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        onClick={(event) => event.stopPropagation()}
-        className={cn(
-          cardClass,
-          'max-h-[90vh] w-full overflow-auto',
-          wide ? 'max-w-2xl' : 'max-w-md',
-        )}
-      >
-        <header className="flex items-start justify-between gap-3 border-b border-line px-5 py-4">
-          <h2 className="m-0 text-lg font-semibold">{title}</h2>
-          <button type="button" onClick={onClose} className={btnGhost}>
-            Cerrar
-          </button>
-        </header>
-        <div className="px-5 py-4">{children}</div>
-      </div>
-    </div>
-  );
-}
+export { Modal } from './modal';
 
 export function Pager({
   page,

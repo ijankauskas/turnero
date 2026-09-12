@@ -2,8 +2,10 @@
 
 import { FormEvent, useEffect, useState } from 'react';
 import { AppShell } from '../../../components/app-shell';
-import { apiJson } from '../../../lib/session';
+import { ImageUploadField } from '../../../components/image-upload-field';
+import { apiJson, apiUpload } from '../../../lib/session';
 import { apiItems } from '../../../lib/paging';
+import { Select } from '../../../components/select';
 import {
   Alert,
   btnDanger,
@@ -26,6 +28,7 @@ type Professional = {
   color: string;
   title: string | null;
   active?: boolean;
+  avatarUrl?: string | null;
   branches: Array<{ id: string; name: string }>;
 };
 type Block = {
@@ -61,6 +64,7 @@ export default function ConfigProfesionalesPage() {
   const [selected, setSelected] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState('');
   const [color, setColor] = useState('#888888');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [branchIds, setBranchIds] = useState<string[]>([]);
   const [schedule, setSchedule] = useState<Block[]>([]);
   const [offers, setOffers] = useState<Record<string, Offer>>({});
@@ -92,6 +96,7 @@ export default function ConfigProfesionalesPage() {
       ]);
       setDisplayName(pro.displayName);
       setColor(pro.color);
+      setAvatarUrl(pro.avatarUrl ?? null);
       setBranchIds(pro.branches.map((row) => row.id));
       setSchedule(blocks);
       const next: Record<string, Offer> = {};
@@ -216,14 +221,25 @@ export default function ConfigProfesionalesPage() {
                     selected === row.id && 'border-accent bg-accent/10',
                   )}
                 >
-                  <span
-                    className="mb-1 inline-block size-2.5 rounded-full"
-                    style={{ background: row.color }}
-                  />
-                  <strong className="ml-2">{row.displayName}</strong>
-                  {row.active === false ? (
-                    <span className="text-muted"> (inactivo)</span>
-                  ) : null}
+                  <div className="flex items-center gap-2">
+                    {row.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={row.avatarUrl}
+                        alt=""
+                        className="size-8 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="inline-block size-2.5 rounded-full"
+                        style={{ background: row.color }}
+                      />
+                    )}
+                    <strong>{row.displayName}</strong>
+                    {row.active === false ? (
+                      <span className="text-muted"> (inactivo)</span>
+                    ) : null}
+                  </div>
                   <div className="mt-1 text-xs text-muted">
                     {row.branches.map((b) => b.name).join(', ') || 'sin sucursal'}
                   </div>
@@ -236,6 +252,21 @@ export default function ConfigProfesionalesPage() {
               <h2 className="mt-0 text-lg font-semibold">
                 Ficha de {current.displayName}
               </h2>
+              <div className="mb-4">
+                <ImageUploadField
+                  label="Foto"
+                  imageUrl={avatarUrl}
+                  rounded="full"
+                  onFile={async (file) => {
+                    const next = await apiUpload<Professional>(
+                      `/professionals/${selected}/avatar`,
+                      file,
+                    );
+                    setAvatarUrl(next.avatarUrl ?? null);
+                    setRows(await apiJson<Professional[]>('/professionals'));
+                  }}
+                />
+              </div>
               <div className="flex flex-wrap items-end gap-3">
                 <label className={cn(labelClass, 'min-w-0 flex-1')}>
                   Nombre en agenda
@@ -329,25 +360,24 @@ export default function ConfigProfesionalesPage() {
                             )}
                           </td>
                           <td className={tdClass}>
-                            <select
+                            <Select
                               disabled={!offer}
                               value={offer?.remunerationType ?? 'PERCENT'}
-                              onChange={(e) =>
+                              onChange={(v) =>
                                 setOffers((currentOffers) => ({
                                   ...currentOffers,
                                   [service.id]: {
                                     ...currentOffers[service.id],
-                                    remunerationType: e.target.value as
-                                      | 'PERCENT'
-                                      | 'FIXED',
+                                    remunerationType: v as 'PERCENT' | 'FIXED',
                                   },
                                 }))
                               }
-                              className={cn(inputClass, 'mt-0 w-24')}
-                            >
-                              <option value="PERCENT">%</option>
-                              <option value="FIXED">Fijo</option>
-                            </select>
+                              className="mt-0 w-24"
+                              options={[
+                                { value: 'PERCENT', label: '%' },
+                                { value: 'FIXED', label: 'Fijo' },
+                              ]}
+                            />
                           </td>
                           <td className={tdClass}>
                             <input
@@ -382,32 +412,26 @@ export default function ConfigProfesionalesPage() {
                   key={`${block.weekday}-${index}`}
                   className="mb-2 flex flex-wrap items-center gap-2"
                 >
-                  <select
-                    value={block.weekday}
-                    onChange={(e) =>
-                      updateBlock(index, { weekday: Number(e.target.value) })
+                  <Select
+                    value={String(block.weekday)}
+                    onChange={(weekday) =>
+                      updateBlock(index, { weekday: Number(weekday) })
                     }
-                    className={cn(controlClass, 'mt-0')}
-                  >
-                    {DAYS.map((day, weekday) => (
-                      <option key={day} value={weekday}>
-                        {day}
-                      </option>
-                    ))}
-                  </select>
-                  <select
+                    className="mt-0"
+                    options={DAYS.map((day, weekday) => ({
+                      value: String(weekday),
+                      label: day,
+                    }))}
+                  />
+                  <Select
                     value={block.branchId}
-                    onChange={(e) =>
-                      updateBlock(index, { branchId: e.target.value })
-                    }
-                    className={cn(controlClass, 'mt-0')}
-                  >
-                    {branches.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(branchId) => updateBlock(index, { branchId })}
+                    className="mt-0"
+                    options={branches.map((row) => ({
+                      value: row.id,
+                      label: row.name,
+                    }))}
+                  />
                   <input
                     type="time"
                     value={block.startTime}

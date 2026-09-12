@@ -5,6 +5,7 @@ import { AppShell } from '../../../components/app-shell';
 import { ROLE_LABEL } from '../../../lib/labels';
 import { apiItems, apiPage } from '../../../lib/paging';
 import { apiJson } from '../../../lib/session';
+import { Select } from '../../../components/select';
 import {
   Alert,
   btnDanger,
@@ -330,37 +331,31 @@ export default function ConfigUsuariosPage() {
               ) : null}
               <label className={labelClass}>
                 Rol
-                <select
+                <Select
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
-                  className={inputClass}
-                >
-                  {Object.entries(ROLE_LABEL).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  onChange={(role) => setForm({ ...form, role })}
+                  options={Object.entries(ROLE_LABEL).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                />
               </label>
               {form.role !== 'ADMINISTRADOR' ? (
                 <label className={labelClass}>
                   Sucursal
-                  <select
+                  <Select
                     value={form.branchId}
-                    onChange={(e) =>
-                      setForm({ ...form, branchId: e.target.value })
-                    }
-                    className={inputClass}
-                  >
-                    {form.role === 'PROFESIONAL' ? (
-                      <option value="">Sin sucursal de acceso</option>
-                    ) : null}
-                    {branches.map((row) => (
-                      <option key={row.id} value={row.id}>
-                        {row.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(branchId) => setForm({ ...form, branchId })}
+                    options={[
+                      ...(form.role === 'PROFESIONAL'
+                        ? [{ value: '', label: 'Sin sucursal de acceso' }]
+                        : []),
+                      ...branches.map((row) => ({
+                        value: row.id,
+                        label: row.name,
+                      })),
+                    ]}
+                  />
                 </label>
               ) : null}
               {editingId ? (

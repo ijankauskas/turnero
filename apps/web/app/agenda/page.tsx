@@ -30,6 +30,7 @@ import {
 import { apiJson } from '../../lib/session';
 import { apiItems } from '../../lib/paging';
 import type { MeResponse } from '../../lib/types';
+import { Select } from '../../components/select';
 import {
   Alert,
   btnGhost,
@@ -216,10 +217,10 @@ export default function AgendaPage() {
             />
           </div>
           {isStaff ? (
-            <fieldset className={cn(cardClass, 'p-4')}>
-              <legend className="px-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
+            <div className={cn(cardClass, 'p-4')}>
+              <h3 className="mt-0 mb-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-muted">
                 Colaboradores
-              </legend>
+              </h3>
               <div className="grid gap-2">
                 {professionals.map((pro) => (
                   <label
@@ -237,15 +238,24 @@ export default function AgendaPage() {
                       }}
                       className="size-4 rounded border-line"
                     />
-                    <span
-                      className="h-2.5 w-2.5 rounded-full"
-                      style={{ background: pro.color }}
-                    />
+                    {pro.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={pro.avatarUrl}
+                        alt=""
+                        className="size-5 rounded-full object-cover"
+                      />
+                    ) : (
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: pro.color }}
+                      />
+                    )}
                     <span>{pro.displayName}</span>
                   </label>
                 ))}
               </div>
-            </fieldset>
+            </div>
           ) : null}
           {isStaff && daily ? (
             <div className={cn(cardClass, 'p-4')}>
@@ -377,18 +387,16 @@ export default function AgendaPage() {
               ))}
             </div>
             {isAdmin ? (
-              <select
+              <Select
                 value={branchId}
-                onChange={(e) => setBranchId(e.target.value)}
-                className={cn(controlClass, 'mt-0 min-w-[180px] py-2')}
-              >
-                <option value="">Todas las sucursales</option>
-                {branches.map((row) => (
-                  <option key={row.id} value={row.id}>
-                    {row.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setBranchId}
+                className="mt-0 min-w-[180px]"
+                aria-label="Sucursal"
+                options={[
+                  { value: '', label: 'Todas las sucursales' },
+                  ...branches.map((row) => ({ value: row.id, label: row.name })),
+                ]}
+              />
             ) : null}
             {canWrite ? (
               <button
@@ -454,22 +462,6 @@ export default function AgendaPage() {
           ) : null}
         </div>
 
-        {selected ? (
-          <AppointmentPanel
-            appointment={
-              appointments.find((row) => row.id === selected.id) ?? selected
-            }
-            timeZone={timezone}
-            canWrite={canWrite}
-            onClose={() => setSelected(null)}
-            onChanged={() => {
-              void load();
-            }}
-          />
-        ) : (
-          <div />
-        )}
-
         {create && canWrite ? (
           <NewAppointmentForm
             key={`${create.date ?? date}-${create.professionalId ?? ''}-${create.time ?? ''}`}
@@ -485,7 +477,21 @@ export default function AgendaPage() {
               void load();
             }}
           />
-        ) : null}
+        ) : selected ? (
+          <AppointmentPanel
+            appointment={
+              appointments.find((row) => row.id === selected.id) ?? selected
+            }
+            timeZone={timezone}
+            canWrite={canWrite}
+            onClose={() => setSelected(null)}
+            onChanged={() => {
+              void load();
+            }}
+          />
+        ) : (
+          <div />
+        )}
       </section>
     </AppShell>
   );

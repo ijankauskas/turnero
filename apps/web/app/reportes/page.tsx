@@ -6,6 +6,7 @@ import { monthEnd, monthStart, todayInZone } from '../../lib/datetime';
 import { apiJson } from '../../lib/session';
 import { apiItems } from '../../lib/paging';
 import type { MeResponse } from '../../lib/types';
+import { Select } from '../../components/select';
 import {
   Alert,
   btnGhost,
@@ -133,18 +134,16 @@ export default function ReportesPage() {
             className={cn(controlClass, 'mt-0')}
           />
           {role === 'ADMINISTRADOR' ? (
-            <select
+            <Select
               value={branchId}
-              onChange={(e) => setBranchId(e.target.value)}
-              className={cn(controlClass, 'mt-0')}
-            >
-              <option value="">Todas</option>
-              {branches.map((row) => (
-                <option key={row.id} value={row.id}>
-                  {row.name}
-                </option>
-              ))}
-            </select>
+              onChange={setBranchId}
+              aria-label="Sucursal"
+              className="mt-0 min-w-[160px]"
+              options={[
+                { value: '', label: 'Todas' },
+                ...branches.map((row) => ({ value: row.id, label: row.name })),
+              ]}
+            />
           ) : null}
           <button type="button" onClick={() => void load()} className={btnGhost}>
             Actualizar

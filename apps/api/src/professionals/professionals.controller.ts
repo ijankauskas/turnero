@@ -6,10 +6,15 @@ import {
   Patch,
   Post,
   Put,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { memoryStorage } from 'multer';
 import type { AuthenticatedUser } from '../auth/auth.types';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Roles } from '../common/decorators/roles.decorator';
+import { imageUploadOptions } from '../uploads/storage';
 import {
   CreateProfessionalDto,
   PutBranchesDto,
@@ -73,6 +78,22 @@ export class ProfessionalsController {
     @Body() dto: PutBranchesDto,
   ) {
     return this.professionals.replaceBranches(user, id, dto);
+  }
+
+  @Post(':id/avatar')
+  @Roles('ADMINISTRADOR')
+  @UseInterceptors(
+    FileInterceptor('file', {
+      storage: memoryStorage(),
+      ...imageUploadOptions,
+    }),
+  )
+  uploadAvatar(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    return this.professionals.uploadAvatar(user, id, file);
   }
 
   @Get(':id')

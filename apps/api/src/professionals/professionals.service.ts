@@ -8,6 +8,7 @@ import { clockToDate, dateToClock } from '../common/clock';
 import { hiddenNotFound, money } from '../common/http';
 import { assertScheduleNoCrossBranchOverlap } from '../common/schedule-rules';
 import { TenantPrismaFactory } from '../tenant/tenant-prisma.service';
+import { saveCompanyImage } from '../uploads/storage';
 import type {
   CreateProfessionalDto,
   PutBranchesDto,
@@ -36,7 +37,13 @@ export class ProfessionalsService {
       include: {
         branches: { include: { branch: true } },
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
         },
       },
       orderBy: { displayName: 'asc' },
@@ -54,7 +61,13 @@ export class ProfessionalsService {
       include: {
         branches: { include: { branch: true } },
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true },
+          select: {
+            id: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            avatarUrl: true,
+          },
         },
       },
     });
@@ -121,6 +134,21 @@ export class ProfessionalsService {
         data: { active: false },
       });
     }
+    return this.get(user, id);
+  }
+
+  async uploadAvatar(
+    user: AuthenticatedUser,
+    id: string,
+    file: Express.Multer.File,
+  ) {
+    const existing = await this.get(user, id);
+    const saved = saveCompanyImage(user.companyId, 'avatar', file);
+    const db = this.tenants.forCompany(user.companyId);
+    await db.user.update({
+      where: { id: existing.userId },
+      data: { avatarUrl: saved.url },
+    });
     return this.get(user, id);
   }
 
@@ -284,7 +312,13 @@ function serializeProfessional(row: {
   color: string;
   active: boolean;
   userId: string;
-  user: { id: string; email: string; firstName: string; lastName: string };
+  user: {
+    id: string;
+    email: string;
+    firstName: string;
+    lastName: string;
+    avatarUrl: string | null;
+  };
   branches: Array<{
     branchId: string;
     isPrimary: boolean;
@@ -297,6 +331,7 @@ function serializeProfessional(row: {
     title: row.title,
     color: row.color,
     active: row.active,
+    avatarUrl: row.user.avatarUrl,
     userId: row.userId,
     user: row.user,
     branches: row.branches.map((link) => ({

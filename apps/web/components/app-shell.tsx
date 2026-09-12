@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useEffect, useState } from 'react';
+import { CSSProperties, ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { ROLE_LABEL } from '../lib/labels';
 import {
@@ -8,6 +8,7 @@ import {
   clearSession,
   readSession,
 } from '../lib/session';
+import { isLightColor, normalizeHex } from '../lib/brand';
 import { cn } from './ui';
 
 type MeResponse = {
@@ -94,7 +95,9 @@ export function AppShell({
     );
   }
 
-  const accent = me.company.primaryColor ?? '#2563eb';
+  const accent = normalizeHex(me.company.primaryColor, '#2563eb');
+  const menuBg = normalizeHex(me.company.secondaryColor, '#0b1220');
+  const menuLight = isLightColor(menuBg);
   const links = NAV.filter(
     (item) => !item.roles || item.roles.includes(me.user.role),
   );
@@ -128,7 +131,12 @@ export function AppShell({
             {me.company.name.slice(0, 1)}
           </span>
         )}
-        <strong className="truncate text-[15px] font-semibold text-white">
+        <strong
+          className={cn(
+            'truncate text-[15px] font-semibold',
+            menuLight ? 'text-ink' : 'text-white',
+          )}
+        >
           {me.company.name}
         </strong>
       </div>
@@ -144,8 +152,11 @@ export function AppShell({
               href={item.href}
               aria-current={current ? 'page' : undefined}
               className={cn(
-                'rounded-lg px-3 py-2 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white',
-                current && 'bg-white/10 text-white',
+                'rounded-lg px-3 py-2 text-sm font-medium transition',
+                menuLight
+                  ? 'text-ink/70 hover:bg-black/5 hover:text-ink'
+                  : 'text-slate-300 hover:bg-white/10 hover:text-white',
+                current && (menuLight ? 'bg-black/5 text-ink' : 'bg-white/10 text-white'),
               )}
               style={
                 current
@@ -158,17 +169,37 @@ export function AppShell({
           );
         })}
       </nav>
-      <div className="mt-auto border-t border-white/10 px-4 py-4">
-        <p className="truncate text-sm font-medium text-white">
+      <div
+        className={cn(
+          'mt-auto border-t px-4 py-4',
+          menuLight ? 'border-black/10' : 'border-white/10',
+        )}
+      >
+        <p
+          className={cn(
+            'truncate text-sm font-medium',
+            menuLight ? 'text-ink' : 'text-white',
+          )}
+        >
           {me.user.firstName} {me.user.lastName}
         </p>
-        <p className="truncate text-xs text-slate-400">
+        <p
+          className={cn(
+            'truncate text-xs',
+            menuLight ? 'text-muted' : 'text-slate-400',
+          )}
+        >
           {ROLE_LABEL[me.user.role] ?? me.user.role}
         </p>
         <button
           type="button"
           onClick={logout}
-          className="mt-3 w-full rounded-lg border border-white/15 px-3 py-1.5 text-sm text-slate-200 transition hover:bg-white/10"
+          className={cn(
+            'mt-3 w-full rounded-lg border px-3 py-1.5 text-sm transition',
+            menuLight
+              ? 'border-line text-ink hover:bg-black/5'
+              : 'border-white/15 text-slate-200 hover:bg-white/10',
+          )}
         >
           Salir
         </button>
@@ -179,7 +210,13 @@ export function AppShell({
   return (
     <div
       className="shell bg-canvas"
-      style={{ ['--color-primary' as string]: accent }}
+      style={
+        {
+          ['--color-accent' as string]: accent,
+          ['--color-gold' as string]: accent,
+          ['--color-sidebar' as string]: menuBg,
+        } as CSSProperties
+      }
     >
       {menuOpen ? (
         <button
@@ -191,7 +228,8 @@ export function AppShell({
       ) : null}
       <aside
         className={cn(
-          'shell-nav flex min-h-screen flex-col bg-sidebar text-white',
+          'shell-nav flex min-h-screen flex-col bg-sidebar',
+          menuLight ? 'text-ink' : 'text-white',
           menuOpen && 'is-open',
         )}
       >
